@@ -1,0 +1,27 @@
+Jiten-pai Road Map
+==================
+
+Phase I
+-------
+[x] command line dict parser, proof of concept
+[x] regex support in search
+
+
+Phase II
+--------
+[x] Qt GUI
+[x] result formatting
+[ ] preferences, config file
+[ ] history
+[ ] romaji support?
+
+
+Phase III
+---------
+[ ] dict download & conversion (as separate tool!)
+
+
+Phase IV
+--------
+[ ] Kanji-Dic
+
