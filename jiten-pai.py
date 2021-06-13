@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 
 """
-jiten-pai
+jiten-pai.py
 
+Copyright (c) 2021 Urban Wallasch <irrwahn35@freenet.de>
+
+Jiten-pai is distributed under the Modified ("3-clause") BSD License.
+See `LICENSE` file for more information.
 """
+
 
 _JITENPAI_VERSION = '0.0.1'
 _JITENPAI_NAME = 'Jiten-pai'
