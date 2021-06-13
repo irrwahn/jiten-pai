@@ -30,12 +30,6 @@ from PyQt5.QtGui import *
 ############################################################
 # utility functions
 
-def eprint(lvl, *args, vo=0, **kwargs):
-    v = cfg['verbosity'] if 'cfg' in globals() else vo
-    if lvl <= v:
-        print('LINE %d: ' % currentframe().f_back.f_lineno, file=sys.stderr, end = '')
-        print(*args, file=sys.stderr, **kwargs)
-
 def die(rc=0):
     sys.exit(rc)
 
@@ -147,29 +141,26 @@ class jpMainWindow(QMainWindow):
             # construct display line
             html.append('%s%s</span> (%s) %s<br>' % (lfmt, res[0], res[1], res[2]))
         html.append('</div>')
-        #print(html)
         self.result_pane.setHtml(''.join(html))
         self.matches_label.setText("Matches found: %d" % len(result))
 
 
 ############################################################
 # dictionary lookup
+#
+# edict example line:
+# 〆日 [しめび] /(n) time limit/closing day/settlement day (payment)/deadline/
 
 def dict_lookup(dict_fname, term, max_res = 0):
     result = []
     cnt = 0;
     with open(dict_fname) as dict_file:
-        # edict example line:
-        # 〆日 [しめび] /(n) time limit/closing day/settlement day (payment)/deadline/
-        #re_split = re.compile(r'^\s*(.*?)\s*\[\s*(.*?)\s*\]\s*/\s*(.*?)\s*/\s*$')
         re_term = re.compile(term)
         for line in dict_file:
             if max_res and cnt >= max_res:
                 break
             try:
-                #kanji, kana, trans = re_split.match(line.strip()).groups()
-                # splitting the line manually is twice as fast as the regex, but
-                # still about 3 times slower than the C reference implementation
+                # manually splitting the line is actually faster than regex
                 p1 = line.split('[', 1)
                 p2 = p1[1].split(']', 1)
                 kanji = p1[0].strip()
@@ -178,9 +169,9 @@ def dict_lookup(dict_fname, term, max_res = 0):
             except:
                 continue
             # for now promiscuously try to match anything anywhere
-            if re_term.search(kanji) is not None or \
-               re_term.search(kana) is not None or \
-               re_term.search(trans) is not None:
+            if re_term.search(kanji) is not None \
+            or re_term.search(kana) is not None \
+            or re_term.search(trans) is not None:
                 result.append([kanji, kana, trans])
                 cnt += 1
     return result
