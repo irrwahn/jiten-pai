@@ -125,7 +125,7 @@ class jpMainWindow(QMainWindow):
         self.setCentralWidget(main_frame)
 
     def search(self):
-        term = self.search_box.lineEdit().text()
+        term = self.search_box.lineEdit().text().strip()
         if len(term) < 1:
             return
         result = dict_lookup(cfg['dict'], term, cfg['max_res'])
