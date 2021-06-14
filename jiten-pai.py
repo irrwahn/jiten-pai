@@ -13,7 +13,7 @@ See `LICENSE` file for more information.
 """
 
 
-_JITENPAI_VERSION = '0.0.2'
+_JITENPAI_VERSION = '0.0.3'
 _JITENPAI_NAME = 'Jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'
 
@@ -66,6 +66,178 @@ cfg = {
     'lfont_sz': 24,
     'hl_col': 'blue',
 }
+
+
+############################################################
+# Katakana -> Hiragana <- Romaji conversion code adapted from:
+#   https://github.com/ikegami-yukino/jaconv
+#   Copyright (c) 2014 Yukino Ikegami
+#   MIT License
+
+HIRAGANA = list('ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすず'
+                'せぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴ'
+                'ふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろわ'
+                'をんーゎゐゑゕゖゔゝゞ・「」。、')
+
+FULL_KANA = list('ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソ'
+                 'ゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペ'
+                 'ホボポマミムメモャヤュユョヨラリルレロワヲンーヮヰヱヵヶヴ'
+                 'ヽヾ・「」。、')
+
+HEPBURN = list('aiueoaiueon')
+HEPBURN_KANA = list('ぁぃぅぇぉあいうえおん')
+
+def _to_ord_list(chars):
+    return list(map(ord, chars))
+
+def _to_dict(_from, _to):
+    return dict(zip(_from, _to))
+
+K2H_TABLE = _to_dict(_to_ord_list(FULL_KANA), HIRAGANA)
+HEP2KANA = _to_dict(_to_ord_list(HEPBURN), HEPBURN_KANA)
+
+del _to_ord_list
+del _to_dict
+del HIRAGANA
+del FULL_KANA
+del HEPBURN
+del HEPBURN_KANA
+
+def kata2hira(text):
+    return text.translate(K2H_TABLE)
+
+def alphabet2kana(text):
+    # replace final h with う, e.g., Itoh -> いとう
+    ending_h_pattern = re.compile(r'h$')
+    text = re.sub(ending_h_pattern, 'う', text)
+
+    text = text.replace('kya', 'きゃ').replace('kyi', 'きぃ').replace('kyu', 'きゅ')
+    text = text.replace('kye', 'きぇ').replace('kyo', 'きょ')
+    text = text.replace('gya', 'ぎゃ').replace('gyi', 'ぎぃ').replace('gyu', 'ぎゅ')
+    text = text.replace('gye', 'ぎぇ').replace('gyo', 'ぎょ')
+    text = text.replace('sha', 'しゃ').replace('shu', 'しゅ').replace('she', 'しぇ')
+    text = text.replace('sho', 'しょ')
+    text = text.replace('sya', 'しゃ').replace('syi', 'しぃ').replace('syu', 'しゅ')
+    text = text.replace('sye', 'しぇ').replace('syo', 'しょ')
+    text = text.replace('zya', 'じゃ').replace('zyu', 'じゅ').replace('zyo', 'じょ')
+    text = text.replace('zyi', 'じぃ').replace('zye', 'じぇ')
+    text = text.replace('ja', 'じゃ').replace('ju', 'じゅ').replace('jo', 'じょ')
+    text = text.replace('jya', 'じゃ').replace('jyi', 'じぃ').replace('jyu', 'じゅ')
+    text = text.replace('jye', 'じぇ').replace('jyo', 'じょ')
+    text = text.replace('dya', 'ぢゃ').replace('dyi', 'ぢぃ').replace('dyu', 'ぢゅ')
+    text = text.replace('dye', 'ぢぇ').replace('dyo', 'ぢょ')
+    text = text.replace('cha', 'ちゃ').replace('chu', 'ちゅ').replace('che', 'ちぇ')
+    text = text.replace('cho', 'ちょ')
+    text = text.replace('cya', 'ちゃ').replace('cyi', 'ちぃ').replace('cyu', 'ちゅ')
+    text = text.replace('cye', 'ちぇ').replace('cyo', 'ちょ')
+    text = text.replace('tya', 'ちゃ').replace('tyi', 'ちぃ').replace('tyu', 'ちゅ')
+    text = text.replace('tye', 'ちぇ').replace('tyo', 'ちょ')
+    text = text.replace('tsa', 'つぁ').replace('tsi', 'つぃ').replace('tse', 'つぇ')
+    text = text.replace('tso', 'つぉ')
+    text = text.replace('thi', 'てぃ').replace('t\'i', 'てぃ')
+    text = text.replace('tha', 'てゃ').replace('thu', 'てゅ').replace('t\'yu', 'てゅ')
+    text = text.replace('the', 'てぇ').replace('tho', 'てょ')
+    text = text.replace('dha', 'でゃ').replace('dhi', 'でぃ').replace('d\'i', 'でぃ')
+    text = text.replace('dhu', 'でゅ').replace('dhe', 'でぇ').replace('dho', 'でょ')
+    text = text.replace('d\'yu', 'でゅ')
+    text = text.replace('twa', 'とぁ').replace('twi', 'とぃ').replace('twu', 'とぅ')
+    text = text.replace('twe', 'とぇ').replace('two', 'とぉ').replace('t\'u', 'とぅ')
+    text = text.replace('dwa', 'どぁ').replace('dwi', 'どぃ').replace('dwu', 'どぅ')
+    text = text.replace('dwe', 'どぇ').replace('dwo', 'どぉ').replace('d\'u', 'どぅ')
+    text = text.replace('nya', 'にゃ').replace('nyi', 'にぃ').replace('nyu', 'にゅ')
+    text = text.replace('nye', 'にぇ').replace('nyo', 'にょ')
+    text = text.replace('hya', 'ひゃ').replace('hyi', 'ひぃ').replace('hyu', 'ひゅ')
+    text = text.replace('hye', 'ひぇ').replace('hyo', 'ひょ')
+    text = text.replace('mya', 'みゃ').replace('myi', 'みぃ').replace('myu', 'みゅ')
+    text = text.replace('mye', 'みぇ').replace('myo', 'みょ')
+    text = text.replace('rya', 'りゃ').replace('ryi', 'りぃ').replace('ryu', 'りゅ')
+    text = text.replace('rye', 'りぇ').replace('ryo', 'りょ')
+    text = text.replace('bya', 'びゃ').replace('byi', 'びぃ').replace('byu', 'びゅ')
+    text = text.replace('bye', 'びぇ').replace('byo', 'びょ')
+    text = text.replace('pya', 'ぴゃ').replace('pyi', 'ぴぃ').replace('pyu', 'ぴゅ')
+    text = text.replace('pye', 'ぴぇ').replace('pyo', 'ぴょ')
+    text = text.replace('vyi', 'ゔぃ').replace('vyu', 'ゔゅ').replace('vye', 'ゔぇ')
+    text = text.replace('vyo', 'ゔょ')
+    text = text.replace('fya', 'ふゃ').replace('fyu', 'ふゅ').replace('fyo', 'ふょ')
+    text = text.replace('hwa', 'ふぁ').replace('hwi', 'ふぃ').replace('hwe', 'ふぇ')
+    text = text.replace('hwo', 'ふぉ').replace('hwyu', 'ふゅ')
+    text = text.replace('pha', 'ふぁ').replace('phi', 'ふぃ').replace('phu', 'ふぅ')
+    text = text.replace('phe', 'ふぇ').replace('pho', 'ふぉ')
+    text = text.replace('xn', 'ん').replace('xa', 'ぁ').replace('xi', 'ぃ')
+    text = text.replace('xu', 'ぅ').replace('xe', 'ぇ').replace('xo', 'ぉ')
+    text = text.replace('lyi', 'ぃ').replace('xyi', 'ぃ').replace('lye', 'ぇ')
+    text = text.replace('xye', 'ぇ').replace('xka', 'ヵ').replace('xke', 'ヶ')
+    text = text.replace('lka', 'ヵ').replace('lke', 'ヶ')
+    text = text.replace('ca', 'か').replace('ci', 'し').replace('cu', 'く')
+    text = text.replace('co', 'こ')
+    text = text.replace('qa', 'くぁ').replace('qi', 'くぃ').replace('qu', 'く')
+    text = text.replace('qe', 'くぇ').replace('qo', 'くぉ')
+    text = text.replace('kwa', 'くぁ').replace('kwi', 'くぃ').replace('kwu', 'くぅ')
+    text = text.replace('kwe', 'くぇ').replace('kwo', 'くぉ')
+    text = text.replace('gwa', 'ぐぁ').replace('gwi', 'ぐぃ').replace('gwu', 'ぐぅ')
+    text = text.replace('gwe', 'ぐぇ').replace('gwo', 'ぐぉ')
+    text = text.replace('swa', 'すぁ').replace('swi', 'すぃ').replace('swu', 'すぅ')
+    text = text.replace('swe', 'すぇ').replace('swo', 'すぉ')
+    text = text.replace('zwa', 'ずぁ').replace('zwi', 'ずぃ').replace('zwu', 'ずぅ')
+    text = text.replace('zwe', 'ずぇ').replace('zwo', 'ずぉ')
+    text = text.replace('je', 'じぇ')
+    text = text.replace('ti', 'ち')
+    text = text.replace('xtu', 'っ').replace('xtsu', 'っ')
+    text = text.replace('ltu', 'っ').replace('ltsu', 'っ')
+    text = text.replace('xya', 'ゃ').replace('lya', 'ゃ')
+    text = text.replace('xyu', 'ゅ').replace('lyu', 'ゅ')
+    text = text.replace('xyo', 'ょ').replace('lyo', 'ょ')
+    text = text.replace('wha', 'うぁ').replace('whi', 'うぃ').replace('whu', 'う')
+    text = text.replace('whe', 'うぇ').replace('who', 'うぉ')
+    text = text.replace('xwa', 'ゎ').replace('lwa', 'ゎ')
+    text = text.replace('tsu', 'つ')
+    text = text.replace('ga', 'が').replace('gi', 'ぎ').replace('gu', 'ぐ')
+    text = text.replace('ge', 'げ').replace('go', 'ご')
+    text = text.replace('za', 'ざ').replace('ji', 'じ').replace('zi', 'じ')
+    text = text.replace('zu', 'ず').replace('ze', 'ぜ').replace('zo', 'ぞ')
+    text = text.replace('da', 'だ').replace('di', 'ぢ')
+    text = text.replace('zu', 'づ').replace('du', 'づ')
+    text = text.replace('de', 'で').replace('do', 'ど')
+    text = text.replace('va', 'ゔぁ').replace('vi', 'ゔぃ').replace('vu', 'ゔ')
+    text = text.replace('ve', 'ゔぇ').replace('vo', 'ゔぉ').replace('vya', 'ゔゃ')
+    text = text.replace('ba', 'ば').replace('bi', 'び').replace('bu', 'ぶ')
+    text = text.replace('be', 'べ').replace('bo', 'ぼ').replace('pa', 'ぱ')
+    text = text.replace('pi', 'ぴ').replace('pu', 'ぷ').replace('pe', 'ぺ')
+    text = text.replace('po', 'ぽ')
+    text = text.replace('ka', 'か').replace('ki', 'き').replace('ku', 'く')
+    text = text.replace('ke', 'け').replace('ko', 'こ').replace('sa', 'さ')
+    text = text.replace('shi', 'し').replace('su', 'す').replace('se', 'せ')
+    text = text.replace('so', 'そ').replace('ta', 'た').replace('chi', 'ち')
+    text = text.replace('te', 'て').replace('to', 'と')
+    text = text.replace('na', 'な').replace('ni', 'に').replace('nu', 'ぬ')
+    text = text.replace('ne', 'ね').replace('no', 'の').replace('ha', 'は')
+    text = text.replace('hi', 'ひ').replace('fu', 'ふ').replace('he', 'へ')
+    text = text.replace('ho', 'ほ').replace('ma', 'ま').replace('mi', 'み')
+    text = text.replace('mu', 'む').replace('me', 'め').replace('mo', 'も')
+    text = text.replace('ra', 'ら').replace('ri', 'り').replace('ru', 'る')
+    text = text.replace('re', 'れ').replace('ro', 'ろ')
+    text = text.replace('la', 'ら').replace('li', 'り').replace('lu', 'る')
+    text = text.replace('le', 'れ').replace('lo', 'ろ')
+    text = text.replace('ya', 'や').replace('yu', 'ゆ').replace('yo', 'よ')
+    text = text.replace('wa', 'わ').replace('wyi', 'ゐ').replace('wu', 'う')
+    text = text.replace('wye', 'ゑ')
+    text = text.replace('wo', 'を')
+    text = text.replace('nn', 'ん').replace('m', 'ん')
+    text = text.replace('tu', 'つ').replace('hu', 'ふ')
+    text = text.replace('fa', 'ふぁ').replace('fi', 'ふぃ').replace('fe', 'ふぇ')
+    text = text.replace('fo', 'ふぉ').replace('oh', 'おお')
+    text = text.replace('l', 'る').replace('-', 'ー')
+    text = text.translate(HEP2KANA)
+    ret = []
+    consonants = frozenset('sdfghjklqwrtypzxcvbnm')
+    for (i, char) in enumerate(text):
+        if char in consonants:
+            char = 'っ'
+        ret.append(char)
+    return ''.join(ret)
+
+# End of code adapted from jaconv.
+############################################################
 
 
 # widgets / layouts with custom styles
@@ -146,7 +318,7 @@ class jpMainWindow(QMainWindow):
         japopt_layout.addWidget(self.japopt_any)
         japopt_layout.addStretch()
         japopt_group.setLayout(japopt_layout)
-        engopt_group = zQGroupBox('English Search Options')
+        self.engopt_group = zQGroupBox('English Search Options')
         self.engopt_expr = QRadioButton('Whole Expressions')
         self.engopt_word = QRadioButton('Whole Words')
         self.engopt_any = QRadioButton('Any Matches')
@@ -156,9 +328,11 @@ class jpMainWindow(QMainWindow):
         engopt_layout.addWidget(self.engopt_word)
         engopt_layout.addWidget(self.engopt_any)
         engopt_layout.addStretch()
-        engopt_group.setLayout(engopt_layout)
+        self.engopt_group.setLayout(engopt_layout)
         genopt_group = zQGroupBox('General Options')
         # TODO: add remaining general options
+        self.genopt_romaji = QCheckBox('Enable Romaji Input')
+        self.genopt_romaji.toggled.connect(self.engopt_group.setDisabled)
         self.genopt_dolimit = QCheckBox('Limit Results:')
         self.genopt_dolimit.setTristate(False)
         self.genopt_dolimit.setChecked(True)
@@ -171,12 +345,13 @@ class jpMainWindow(QMainWindow):
         genopt_limit_layout.addWidget(self.genopt_dolimit)
         genopt_limit_layout.addWidget(self.genopt_limit)
         genopt_layout = zQVBoxLayout()
+        genopt_layout.addWidget(self.genopt_romaji)
         genopt_layout.addLayout(genopt_limit_layout)
         genopt_layout.addStretch()
         genopt_group.setLayout(genopt_layout)
         opt_layout = zQHBoxLayout()
         opt_layout.addWidget(japopt_group)
-        opt_layout.addWidget(engopt_group)
+        opt_layout.addWidget(self.engopt_group)
         opt_layout.addWidget(genopt_group)
         opt_layout.addStretch()
         # search area
@@ -220,10 +395,13 @@ class jpMainWindow(QMainWindow):
         if len(term) < 1:
             return
         self.result_pane.setEnabled(False);
-        QApplication.processEvents()
         # apply search options
+        if self.genopt_romaji.isChecked():
+            term = alphabet2kana(term)
+            self.search_box.lineEdit().setText(term)
         mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
         if mode == ScanMode.JAP:
+            term = kata2hira(term)
             if self.japopt_exact.isChecked():
                 if term[0] != '^':
                     term = '^' + term
@@ -252,19 +430,25 @@ class jpMainWindow(QMainWindow):
         # result limiting
         max_res = self.genopt_limit.value() if self.genopt_limit.isEnabled() else 0
         # perform lookup
+        QApplication.processEvents()
         result = dict_lookup(cfg['dict'], term, mode, max_res)
         # format result
-        re_term = re.compile(self.search_box.lineEdit().text(), re.IGNORECASE)
+        term = self.search_box.lineEdit().text()
+        re_term = re.compile(kata2hira(term), re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['font'], cfg['font_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
+        hlfmt = '<span style="color: %s;">' % cfg['hl_col']
         html = [nfmt]
-        mrange = [0, 1] if mode == ScanMode.JAP else [2]
-        def hl_repl(match):
-            return '<span style="color: %s;">%s</span>' % (cfg['hl_col'], match.group(0))
+        def hl_repl(match, org=None):
+            grp = match.group(0) if org is None else org[match.span()[0]:match.span()[1]]
+            return '%s%s</span>' % (hlfmt, grp)
         for res in result:
             # highlight matches
-            for i in mrange:
-                res[i] = re_term.sub(hl_repl, res[i])
+            if mode == ScanMode.JAP:
+                res[0] = re_term.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
+                res[1] = re_term.sub(hl_repl, res[1])
+            else:
+                res[2] = re_term.sub(hl_repl, res[2])
             # construct display line
             html.append('%s%s</span>' % (lfmt, res[0]))
             if len(res[1]) > 0:
@@ -290,11 +474,11 @@ class jpMainWindow(QMainWindow):
 # 〆日 [しめび] /(n) time limit/closing day/settlement day (payment)/deadline/
 # ハート /(n) heart/(P)/
 
-def dict_lookup(dict_fname, term, mode, max_res=0):
+def dict_lookup(dict_fname, pattern, mode, max_res=0):
     result = []
     cnt = 0;
     with open(dict_fname) as dict_file:
-        re_term = re.compile(term, re.IGNORECASE)
+        re_pattern = re.compile(pattern, re.IGNORECASE)
         for line in dict_file:
             if max_res and cnt >= max_res:
                 break
@@ -306,14 +490,14 @@ def dict_lookup(dict_fname, term, mode, max_res=0):
                     p2 = ['', p1[1]]
                 else:
                     p2 = p1[1].split(']', 1)
-                kanji = p1[0].strip()
-                kana = p2[0].strip()
+                term = p1[0].strip()
+                hira = p2[0].strip()
                 trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
             except:
                 continue
-            if (mode == ScanMode.JAP and (re_term.search(kanji) or re_term.search(kana))) \
-            or (mode == ScanMode.ENG and re_term.search(trans)):
-                result.append([kanji, kana, trans])
+            if (mode == ScanMode.JAP and (re_pattern.search(kata2hira(term)) or re_pattern.search(hira))) \
+            or (mode == ScanMode.ENG and re_pattern.search(trans)):
+                result.append([term, hira, trans])
                 cnt += 1
     return result
 
