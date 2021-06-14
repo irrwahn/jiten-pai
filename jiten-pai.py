@@ -213,11 +213,11 @@ class jpMainWindow(QMainWindow):
         else:
             print('apply engopt')
             if self.engopt_expr.isChecked():
-                term = '[^a-zA-Z] ' + term
+                term = '\W ' + term
                 if term[-1] != ';':
                     term = term + ';'
             if self.engopt_word.isChecked():
-                term = '[^a-zA-Z]' + term + '[^a-zA-Z]'
+                term = '\W' + term + '\W'
             if self.engopt_any.isChecked():
                 if term[-1] == ';':
                     term = term[:-1]
@@ -230,7 +230,7 @@ class jpMainWindow(QMainWindow):
             self.result_pane.setHtml('')
             return
         # format result
-        re_term = re.compile(term)
+        re_term = re.compile(self.search_box.lineEdit().text(), re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['font'], cfg['font_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         hl = '<span style="color: %s;">' % cfg['hl_col']
@@ -244,7 +244,10 @@ class jpMainWindow(QMainWindow):
                            + res[i][match.start():match.end()] \
                            + '</span>' + res[i][match.end():]
             # construct display line
-            html.append('%s%s</span> (%s) %s<br>' % (lfmt, res[0], res[1], res[2]))
+            html.append('%s%s</span>' % (lfmt, res[0]))
+            if len(res[1]) > 0:
+                html.append(' (%s)' % res[1])
+            html.append(' %s<br>' % res[2])
         html.append('</div>')
         self.result_pane.setHtml(''.join(html))
         self.matches_label.setText("Matches found: %d" % len(result))
@@ -260,25 +263,31 @@ class jpMainWindow(QMainWindow):
 ############################################################
 # dictionary lookup
 #
-# edict example line:
+# edict example lines:
 # 〆日 [しめび] /(n) time limit/closing day/settlement day (payment)/deadline/
+# ハート /(n) heart/(P)/
 
 def dict_lookup(dict_fname, term, max_res = 0):
     result = []
     cnt = 0;
     with open(dict_fname) as dict_file:
-        re_term = re.compile(term)
+        re_term = re.compile(term, re.IGNORECASE)
         for line in dict_file:
             if max_res and cnt >= max_res:
                 break
             try:
                 # manually splitting the line is actually faster than regex
                 p1 = line.split('[', 1)
-                p2 = p1[1].split(']', 1)
+                if len(p1) < 2:
+                    p1 = line.split('/', 1)
+                    p2 = ['', p1[1]]
+                else:
+                    p2 = p1[1].split(']', 1)
                 kanji = p1[0].strip()
                 kana = p2[0].strip()
                 trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
             except:
+                print("ouch!")
                 continue
             # for now promiscuously try to match anything anywhere
             if re_term.search(kanji) is not None \
