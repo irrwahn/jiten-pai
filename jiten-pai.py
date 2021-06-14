@@ -30,6 +30,7 @@ import os
 import re
 import argparse
 import unicodedata
+import enum
 from configparser import RawConfigParser as ConfigParser
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -37,7 +38,7 @@ from PyQt5.QtGui import *
 
 
 ############################################################
-# utility functions
+# utility functions and classes
 
 def die(rc=0):
     sys.exit(rc)
@@ -47,6 +48,10 @@ def contains_cjk(s):
         if "Lo" == unicodedata.category(c):
             return True
     return False
+
+class ScanMode(enum.Enum):
+    JAP = 1
+    ENG = 2
 
 
 ############################################################
@@ -217,7 +222,8 @@ class jpMainWindow(QMainWindow):
         self.result_pane.setEnabled(False);
         QApplication.processEvents()
         # apply search options
-        if contains_cjk(term):
+        mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
+        if mode == ScanMode.JAP:
             if self.japopt_exact.isChecked():
                 if term[0] != '^':
                     term = '^' + term
@@ -246,17 +252,18 @@ class jpMainWindow(QMainWindow):
         # result limiting
         max_res = self.genopt_limit.value() if self.genopt_limit.isEnabled() else 0
         # perform lookup
-        result = dict_lookup(cfg['dict'], term, max_res)
+        result = dict_lookup(cfg['dict'], term, mode, max_res)
         # format result
         re_term = re.compile(self.search_box.lineEdit().text(), re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['font'], cfg['font_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         html = [nfmt]
+        mrange = [0, 1] if mode == ScanMode.JAP else [2]
         def hl_repl(match):
             return '<span style="color: %s;">%s</span>' % (cfg['hl_col'], match.group(0))
         for res in result:
             # highlight matches
-            for i in range(len(res)):
+            for i in mrange:
                 res[i] = re_term.sub(hl_repl, res[i])
             # construct display line
             html.append('%s%s</span>' % (lfmt, res[0]))
@@ -283,7 +290,7 @@ class jpMainWindow(QMainWindow):
 # 〆日 [しめび] /(n) time limit/closing day/settlement day (payment)/deadline/
 # ハート /(n) heart/(P)/
 
-def dict_lookup(dict_fname, term, max_res = 0):
+def dict_lookup(dict_fname, term, mode, max_res=0):
     result = []
     cnt = 0;
     with open(dict_fname) as dict_file:
@@ -304,10 +311,8 @@ def dict_lookup(dict_fname, term, max_res = 0):
                 trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
             except:
                 continue
-            # for now promiscuously try to match anything anywhere
-            if re_term.search(kanji) is not None \
-            or re_term.search(kana) is not None \
-            or re_term.search(trans) is not None:
+            if (mode == ScanMode.JAP and (re_term.search(kanji) or re_term.search(kana))) \
+            or (mode == ScanMode.ENG and re_term.search(trans)):
                 result.append([kanji, kana, trans])
                 cnt += 1
     return result
