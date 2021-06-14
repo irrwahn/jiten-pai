@@ -232,10 +232,9 @@ class jpMainWindow(QMainWindow):
         re_term = re.compile(self.search_box.lineEdit().text(), re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['font'], cfg['font_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
-        hl = '<span style="color: %s;">' % cfg['hl_col']
         html = [nfmt]
         def hl_repl(match):
-            return hl + match.group(0) + '</span>'
+            return '<span style="color: %s;">%s</span>' % (cfg['hl_col'], match.group(0))
         for res in result:
             # highlight matches
             for i in range(len(res)):
