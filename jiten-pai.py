@@ -213,9 +213,8 @@ class jpMainWindow(QMainWindow):
         else:
             print('apply engopt')
             if self.engopt_expr.isChecked():
-                term = '\W ' + term
-                if term[-1] != ';':
-                    term = term + ';'
+                term = '\W( to)? ' + term
+                term = term + '(\s+\(.*\))?;'
             if self.engopt_word.isChecked():
                 term = '\W' + term + '\W'
             if self.engopt_any.isChecked():
@@ -235,19 +234,17 @@ class jpMainWindow(QMainWindow):
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         hl = '<span style="color: %s;">' % cfg['hl_col']
         html = [nfmt]
+        def hl_repl(match):
+            return hl + match.group(0) + '</span>'
         for res in result:
             # highlight matches
             for i in range(len(res)):
-                match = re_term.search(res[i])
-                if match:
-                    res[i] = res[i][:match.start()] + hl \
-                           + res[i][match.start():match.end()] \
-                           + '</span>' + res[i][match.end():]
+                res[i] = re_term.sub(hl_repl, res[i])
             # construct display line
             html.append('%s%s</span>' % (lfmt, res[0]))
             if len(res[1]) > 0:
                 html.append(' (%s)' % res[1])
-            html.append(' %s<br>' % res[2])
+            html.append(' %s<br>\n' % res[2])
         html.append('</div>')
         self.result_pane.setHtml(''.join(html))
         self.matches_label.setText("Matches found: %d" % len(result))
