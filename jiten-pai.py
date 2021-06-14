@@ -5,12 +5,15 @@ jiten-pai.py
 
 Copyright (c) 2021 Urban Wallasch <irrwahn35@freenet.de>
 
+Contributors:
+    volpol
+
 Jiten-pai is distributed under the Modified ("3-clause") BSD License.
 See `LICENSE` file for more information.
 """
 
 
-_JITENPAI_VERSION = '0.0.1'
+_JITENPAI_VERSION = '0.0.2'
 _JITENPAI_NAME = 'Jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'
 
@@ -60,6 +63,31 @@ cfg = {
 }
 
 
+# widgets / layouts with custom styles
+class zQVBoxLayout(QVBoxLayout):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setSpacing(0)
+        self.setContentsMargins(0,0,0,0)
+
+class zQHBoxLayout(QHBoxLayout):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setSpacing(0)
+        self.setContentsMargins(0,0,0,0)
+
+class zQGroupBox(QGroupBox):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setStyleSheet("""
+            QGroupBox {
+                border: none;
+                font-weight: bold;
+                padding: 1.4em 0.2em 0em 0.2em;
+                margin: 0;
+            }"""
+        )
+
 ############################################################
 # main window class
 
@@ -99,32 +127,32 @@ class jpMainWindow(QMainWindow):
         help_menu = menubar.addMenu('&Help')
         about_action = QAction('&About', self)
         help_menu.addAction(about_action)
-        # options
-        japopt_group = QGroupBox('Japanese Search Options')
+        # search options
+        japopt_group = zQGroupBox('Japanese Search Options')
         self.japopt_exact = QRadioButton('Exact Matches')
         self.japopt_exact.setChecked(True)
         self.japopt_start = QRadioButton('Start With Expression')
         self.japopt_end = QRadioButton('End With Expression')
         self.japopt_any = QRadioButton('Any Matches')
-        japopt_layout = QVBoxLayout()
+        japopt_layout = zQVBoxLayout()
         japopt_layout.addWidget(self.japopt_exact)
         japopt_layout.addWidget(self.japopt_start)
         japopt_layout.addWidget(self.japopt_end)
         japopt_layout.addWidget(self.japopt_any)
         japopt_layout.addStretch()
         japopt_group.setLayout(japopt_layout)
-        engopt_group = QGroupBox('English Search Options')
+        engopt_group = zQGroupBox('English Search Options')
         self.engopt_expr = QRadioButton('Whole Expressions')
         self.engopt_word = QRadioButton('Whole Words')
         self.engopt_any = QRadioButton('Any Matches')
         self.engopt_any.setChecked(True)
-        engopt_layout = QVBoxLayout()
+        engopt_layout = zQVBoxLayout()
         engopt_layout.addWidget(self.engopt_expr)
         engopt_layout.addWidget(self.engopt_word)
         engopt_layout.addWidget(self.engopt_any)
         engopt_layout.addStretch()
         engopt_group.setLayout(engopt_layout)
-        genopt_group = QGroupBox('General Options')
+        genopt_group = zQGroupBox('General Options')
         # TODO: add remaining general options
         self.genopt_dolimit = QCheckBox('Limit Results:')
         self.genopt_dolimit.setTristate(False)
@@ -134,19 +162,20 @@ class jpMainWindow(QMainWindow):
         self.genopt_limit.setMaximum(1000)
         self.genopt_limit.setValue(cfg['max_res'])
         self.genopt_dolimit.toggled.connect(self.genopt_limit.setEnabled)
-        genopt_limit_layout = QHBoxLayout()
+        genopt_limit_layout = zQHBoxLayout()
         genopt_limit_layout.addWidget(self.genopt_dolimit)
         genopt_limit_layout.addWidget(self.genopt_limit)
-        genopt_layout = QVBoxLayout()
+        genopt_layout = zQVBoxLayout()
         genopt_layout.addLayout(genopt_limit_layout)
         genopt_layout.addStretch()
         genopt_group.setLayout(genopt_layout)
-        opt_layout = QHBoxLayout()
+        opt_layout = zQHBoxLayout()
         opt_layout.addWidget(japopt_group)
         opt_layout.addWidget(engopt_group)
         opt_layout.addWidget(genopt_group)
+        opt_layout.addStretch()
         # search area
-        search_group = QGroupBox('Enter expression')
+        search_group = zQGroupBox('Enter expression')
         self.search_box = QComboBox()
         self.search_box.setEditable(True)
         self.search_box.setMinimumWidth(400);
@@ -157,28 +186,26 @@ class jpMainWindow(QMainWindow):
         search_button.clicked.connect(self.search)
         clear_button = QPushButton('Clear')
         clear_button.clicked.connect(lambda: self.search_box.lineEdit().setText(""))
-        search_layout = QHBoxLayout()
+        search_layout = zQHBoxLayout()
         search_layout.addWidget(self.search_box, 100)
         search_layout.addWidget(search_button, 5)
         search_layout.addWidget(clear_button, 1)
         search_group.setLayout(search_layout)
         # result area
-        result_group = QGroupBox('Search results')
-        self.matches_label = QLabel(' ')
+        self.result_group = zQGroupBox('Search results:')
         self.result_pane = QTextEdit()
         self.result_pane.setReadOnly(True)
         self.result_pane.setText('')
-        result_layout = QVBoxLayout()
+        result_layout = zQVBoxLayout()
         result_layout.addWidget(self.result_pane)
-        result_layout.addWidget(self.matches_label)
-        result_group.setLayout(result_layout)
+        self.result_group.setLayout(result_layout)
         # set up main window layout
         main_frame = QWidget()
         main_layout = QVBoxLayout(main_frame)
         main_layout.addWidget(menubar)
         main_layout.addLayout(opt_layout, 1)
-        main_layout.addWidget(search_group, 20)
-        main_layout.addWidget(result_group, 100)
+        main_layout.addWidget(search_group, 1)
+        main_layout.addWidget(self.result_group, 1000)
         self.setCentralWidget(main_frame)
         self.search_box.setFocus()
 
@@ -187,9 +214,10 @@ class jpMainWindow(QMainWindow):
         self.search_box.lineEdit().setText(term)
         if len(term) < 1:
             return
+        self.result_pane.setEnabled(False);
+        QApplication.processEvents()
         # apply search options
         if contains_cjk(term):
-            print('apply japopt')
             if self.japopt_exact.isChecked():
                 if term[0] != '^':
                     term = '^' + term
@@ -211,23 +239,14 @@ class jpMainWindow(QMainWindow):
                 if term[-1] == '$':
                     term = term[:-1]
         else:
-            print('apply engopt')
             if self.engopt_expr.isChecked():
-                term = '\W( to)? ' + term
-                term = term + '(\s+\(.*\))?;'
-            if self.engopt_word.isChecked():
+                term = '\W( to)? ' + term + '(\s+\(.*\))?;'
+            elif self.engopt_word.isChecked():
                 term = '\W' + term + '\W'
-            if self.engopt_any.isChecked():
-                if term[-1] == ';':
-                    term = term[:-1]
         # result limiting
         max_res = self.genopt_limit.value() if self.genopt_limit.isEnabled() else 0
         # perform lookup
         result = dict_lookup(cfg['dict'], term, max_res)
-        if len(result) < 1:
-            self.matches_label.setText("No match found!")
-            self.result_pane.setHtml('')
-            return
         # format result
         re_term = re.compile(self.search_box.lineEdit().text(), re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['font'], cfg['font_sz'])
@@ -246,7 +265,8 @@ class jpMainWindow(QMainWindow):
             html.append(' %s<br>\n' % res[2])
         html.append('</div>')
         self.result_pane.setHtml(''.join(html))
-        self.matches_label.setText("Matches found: %d" % len(result))
+        self.result_group.setTitle('Search results: %d' % len(result))
+        self.result_pane.setEnabled(True);
 
     def kbd_copy(self):
         self.clipboard.setText(self.result_pane.textCursor().selectedText())
@@ -283,7 +303,6 @@ def dict_lookup(dict_fname, term, max_res = 0):
                 kana = p2[0].strip()
                 trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
             except:
-                print("ouch!")
                 continue
             # for now promiscuously try to match anything anywhere
             if re_term.search(kanji) is not None \
