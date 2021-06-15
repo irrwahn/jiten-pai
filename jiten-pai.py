@@ -434,6 +434,7 @@ class jpMainWindow(QMainWindow):
         result = dict_lookup(cfg['dict'], term, mode, max_res)
         #
         self.result_group.setTitle('Search results: %d' % len(result))
+        self.result_pane.setHtml('')
         self.result_pane.setEnabled(True);
         # bail early on empty result
         if 0 == len(result):
