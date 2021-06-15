@@ -719,6 +719,9 @@ class jpMainWindow(QMainWindow):
         self.search_box.lineEdit().setText('')
         self.search_box.setMinimumWidth(400)
         self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.search_box_edit_style = self.search_box.lineEdit().styleSheet()
+        self.search_box_edit_valid = True
+        self.search_box.lineEdit().textChanged.connect(lambda t: self.search_onedit(t))
         QShortcut('Return', self.search_box).activated.connect(self.search)
         search_button = QPushButton('Search')
         search_button.setDefault(True)
@@ -794,11 +797,21 @@ class jpMainWindow(QMainWindow):
         dlg = aboutDialog(self)
         dlg.exec_()
 
+    def search_onedit(self, text):
+        try:
+            re.compile(text, re.IGNORECASE)
+            self.search_box.lineEdit().setStyleSheet(self.search_box_edit_style)
+            self.search_box_edit_valid = True
+        except Exception as e:
+            self.search_box.lineEdit().setStyleSheet('QLineEdit { background-color: #ffffd8; }');
+            self.search_box_edit_valid = False
+
     def search(self):
         term = self.search_box.lineEdit().text().strip()
-        self.search_box.lineEdit().setText(term)
-        if len(term) < 1:
+        if len(term) < 1 or not self.search_box_edit_valid:
+            self.search_box.lineEdit().setStyleSheet('QLineEdit { background-color: #ffc8b8; }');
             return
+        self.search_box.lineEdit().setText(term)
         self.result_pane.setEnabled(False)
         # convert Romaji
         if self.search_romaji.isChecked():
@@ -856,6 +869,7 @@ class jpMainWindow(QMainWindow):
                 if limit == 0:
                     limit = -1
         self.result_group.setTitle('Search results: %d' % len(result))
+        QApplication.processEvents()
         # bail early on empty result
         if 0 == len(result):
             self.result_pane.setHtml('')
@@ -863,11 +877,7 @@ class jpMainWindow(QMainWindow):
             return
         # format result
         term = self.search_box.lineEdit().text()
-        try:
-            re_term = re.compile(kata2hira(term), re.IGNORECASE)
-        except Exception as e:
-            eprint(term, str(e))
-            re_term = re.compile('', re.IGNORECASE)
+        re_term = re.compile(kata2hira(term), re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['nfont'], cfg['nfont_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         hlfmt = '<span style="color: %s;">' % cfg['hl_col']
@@ -904,11 +914,7 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
     cnt = 0
     try:
         with open(dict_fname) as dict_file:
-            try:
-                re_pattern = re.compile(pattern, re.IGNORECASE)
-            except Exception as e:
-                eprint(pattern, str(e))
-                return result
+            re_pattern = re.compile(pattern, re.IGNORECASE)
             for line in dict_file:
                 if limit and cnt >= limit:
                     break
