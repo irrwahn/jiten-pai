@@ -17,6 +17,7 @@ _JITENPAI_VERSION = '0.0.3'
 _JITENPAI_NAME = 'Jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'
 
+_JITENPAI_HELP = 'todo'
 
 import sys
 
@@ -60,8 +61,8 @@ class ScanMode(enum.Enum):
 cfg = {
     'dict': '/usr/share/gjiten/dics/edict',
     'max_res': 100,
-    'font': 'sans',
-    'font_sz': 12,
+    'nfont': 'sans',
+    'nfont_sz': 12,
     'lfont': 'IPAPMincho',
     'lfont_sz': 24,
     'hl_col': 'blue',
@@ -265,6 +266,162 @@ class zQGroupBox(QGroupBox):
             }"""
         )
 
+
+############################################################
+# 'About' dialog
+
+class aboutDialog(QDialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setWindowTitle('Help & About')
+        self.setFixedSize(600, 600)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.icon_label = QLabel()
+        #self.icon_label.setPixmap(jpIcon.jitenpai_pxm)
+        self.tag_label = QLabel('%s %s\n'
+                                'Copyright (c) 2021, Urban Wallasch\n'
+                                'BSD 3-Clause License\n'
+                                'Contributors: volpol'
+                                % (_JITENPAI_NAME, _JITENPAI_VERSION))
+        self.tag_label.setAlignment(Qt.AlignCenter)
+        self.hdr_layout = QHBoxLayout()
+        self.hdr_layout.addWidget(self.icon_label, 1)
+        self.hdr_layout.addWidget(self.tag_label, 100)
+        self.help_pane = QTextEdit()
+        self.help_pane.setReadOnly(True)
+        self.help_pane.setStyleSheet('QTextEdit {border: none;}')
+        self.help_pane.setHtml(_JITENPAI_HELP)
+        self.qt_button = QPushButton('About Qt')
+        self.qt_button.clicked.connect(lambda: QMessageBox.aboutQt(self))
+        self.ok_button = QPushButton('Ok')
+        #self.ok_button.setIcon(jpIcon.ok)
+        self.ok_button.clicked.connect(self.accept)
+        self.btn_layout = QHBoxLayout()
+        self.btn_layout.addWidget(self.qt_button)
+        self.btn_layout.addStretch()
+        self.btn_layout.addWidget(self.ok_button)
+        self.dlg_layout = QVBoxLayout(self)
+        self.dlg_layout.addLayout(self.hdr_layout)
+        self.dlg_layout.addWidget(self.help_pane)
+        self.dlg_layout.addLayout(self.btn_layout)
+
+
+############################################################
+# 'Preferences' dialog
+
+class prefDialog(QDialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_ui()
+
+    def init_ui(self):
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setWindowTitle('Preferences')
+        self.resize(600, 600)
+        # fonts
+        fonts_group = zQGroupBox('Fonts')
+        self.nfont_button = QPushButton('Normal Font')
+        self.nfont_button.setMinimumWidth(130)
+        self.nfont_button.clicked.connect(lambda: self.font_select(self.nfont_edit))
+        self.nfont_edit = QLineEdit(cfg['nfont'] + ', ' + str(cfg['nfont_sz']))
+        self.nfont_edit.setMinimumWidth(300)
+        self.nfont_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.lfont_button = QPushButton('Large Font')
+        self.lfont_button.setMinimumWidth(130)
+        self.lfont_button.clicked.connect(lambda: self.font_select(self.lfont_edit))
+        self.lfont_edit = QLineEdit(cfg['lfont'] + ', ' + str(cfg['lfont_sz']))
+        self.lfont_edit.setMinimumWidth(300)
+        self.lfont_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.color_button = QPushButton('Highlight Color')
+        self.color_button.setMinimumWidth(130)
+        self.color_button.clicked.connect(lambda: self.color_select(self.color_edit))
+        self.color_edit = QLineEdit(cfg['hl_col'])
+        self.font_sample = QTextEdit('')
+        self.font_sample.setReadOnly(True)
+        self.font_sample.setMinimumSize(450, 50);
+        self.font_sample.setMaximumSize(9999, 70);
+        self.font_sample.resize(400, 50);
+        fonts_layout = QFormLayout(fonts_group)
+        fonts_layout.addRow(self.nfont_button, self.nfont_edit)
+        fonts_layout.addRow(self.lfont_button, self.lfont_edit)
+        fonts_layout.addRow(self.color_button, self.color_edit)
+        fonts_layout.addRow('Sample', self.font_sample)
+        fonts_group.setLayout(fonts_layout)
+        # buttons
+        self.cancel_button = QPushButton('Cancel')
+        #self.cancel_button.setIcon(jpIcon.close)
+        self.cancel_button.setToolTip('Close dialog without applying changes')
+        self.cancel_button.clicked.connect(self.reject)
+        self.apply_button = QPushButton('Apply')
+        #self.apply_button.setIcon(jpIcon.apply)
+        self.apply_button.setToolTip('Apply current changes')
+        self.apply_button.clicked.connect(self.apply)
+        self.ok_button = QPushButton('Ok')
+        #self.ok_button.setIcon(jpIcon.ok)
+        self.ok_button.setToolTip('Apply current changes and close dialog')
+        self.ok_button.clicked.connect(self.accept)
+        self.ok_button.setDefault(True)
+        button_layout = zQHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(self.cancel_button)
+        button_layout.addWidget(self.apply_button)
+        button_layout.addWidget(self.ok_button)
+        # dialog layout
+        main_layout = QVBoxLayout(self)
+        main_layout.addWidget(fonts_group)
+        main_layout.addStretch()
+        main_layout.addLayout(button_layout)
+        self.update_font_sample()
+
+    def font_select(self, edit):
+        font = QFont()
+        try:
+            font.fromString(edit.text())
+        except:
+            font.fromString('sans,12')
+        t = QFontDialog.getFont(QFont(font, self))[0].toString().split(',')
+        edit.setText(t[0] + ', ' + t[1])
+        self.update_font_sample()
+
+    def color_select(self, edit):
+        color = QColor()
+        color.setNamedColor(edit.text())
+        color = QColorDialog.getColor(color, title='Select Highlight Color')
+        edit.setText(color.name())
+        self.update_font_sample()
+
+    def update_font_sample(self):
+        font = QFont()
+        font.fromString(self.nfont_edit.text())
+        f = font.toString().split(',')
+        nfmt = '<div style="font-family: %s; font-size: %spt">' % (f[0], f[1])
+        font.fromString(self.lfont_edit.text())
+        f = font.toString().split(',')
+        lfmt = '<span style="font-family: %s; font-size: %spt;">' % (f[0], f[1])
+        hlfmt = '<span style="color: %s;">' % self.color_edit.text()
+        html = [nfmt, lfmt, '辞', hlfmt, '典', '</span></span>',
+               ' (じてん) (n) dictionary; lexicon; (P);', '</div>' ]
+        self.font_sample.setHtml(''.join(html))
+
+    def apply(self):
+        font = QFont()
+        font.fromString(self.nfont_edit.text())
+        f = font.toString().split(',')
+        cfg['nfont'] = f[0]
+        cfg['nfont_sz'] = int(f[1])
+        font.fromString(self.lfont_edit.text())
+        f = font.toString().split(',')
+        cfg['lfont'] = f[0]
+        cfg['lfont_sz'] = int(f[1])
+        cfg['hl_col'] = self.color_edit.text()
+        self.update_font_sample()
+
+    def accept(self):
+        self.apply()
+        super().accept()
+
+
 ############################################################
 # main window class
 
@@ -294,8 +451,7 @@ class jpMainWindow(QMainWindow):
         paste_action.setShortcut('Ctrl+V')
         paste_action.triggered.connect(self.kbd_paste)
         pref_action = QAction('Prefere&nces', self)
-        # TODO: preferences dialog
-        #pref_action.triggered.connect()
+        pref_action.triggered.connect(self.pref_dlg)
         edit_menu.addAction(copy_action)
         edit_menu.addAction(paste_action)
         edit_menu.addAction(pref_action)
@@ -304,6 +460,7 @@ class jpMainWindow(QMainWindow):
         help_menu = menubar.addMenu('&Help')
         about_action = QAction('&About', self)
         help_menu.addAction(about_action)
+        about_action.triggered.connect(self.about_dlg)
         # search options
         japopt_group = zQGroupBox('Japanese Search Options')
         self.japopt_exact = QRadioButton('Exact Matches')
@@ -392,10 +549,12 @@ class jpMainWindow(QMainWindow):
     def pref_dlg(self):
         dlg = prefDialog(self)
         res = dlg.exec_()
+        if res == QDialog.Accepted:
+            self.search()
 
     def about_dlg(self):
         dlg = aboutDialog(self)
-        res = dlg.exec_()
+        dlg.exec_()
 
     def search(self):
         term = self.search_box.lineEdit().text().strip()
@@ -443,7 +602,7 @@ class jpMainWindow(QMainWindow):
         # format result
         term = self.search_box.lineEdit().text()
         re_term = re.compile(kata2hira(term), re.IGNORECASE)
-        nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['font'], cfg['font_sz'])
+        nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['nfont'], cfg['nfont_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         hlfmt = '<span style="color: %s;">' % cfg['hl_col']
         html = [nfmt]
