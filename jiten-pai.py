@@ -80,22 +80,56 @@ cfg = {
     'hl_col': 'blue',
     'history': [],
     'max_hist': 12,
+    'cfgfile': None,
 }
 
 def _save_cfg():
     try:
-        with open(_JITENPAI_CFG, 'w') as cfgfile:
+        with open(cfg['cfgfile'], 'w') as cfgfile:
+            cfg.pop('cfgfile', None)
             json.dump(cfg, cfgfile, indent=2)
+            return
     except Exception as e:
-        eprint(_JITENPAI_CFG, str(e))
+        eprint(cfg['cfgfile'], str(e))
+        cfg.pop('cfgfile', None)
+    cdirs = []
+    if os.environ.get('APPDATA'):
+        cdirs.append(os.environ.get('APPDATA'))
+    if os.environ.get('XDG_CONFIG_HOME'):
+        cdirs.append(os.environ.get('XDG_CONFIG_HOME'))
+    if os.environ.get('HOME'):
+        cdirs.append(os.path.join(os.environ.get('HOME'), '.config'))
+        cdirs.append(os.environ.get('HOME'))
+    cdirs.append(os.path.dirname(os.path.realpath(__file__)))
+    for d in cdirs:
+        cf = os.path.join(d, _JITENPAI_CFG)
+        try:
+            with open(cf, 'w') as cfgfile:
+                json.dump(cfg, cfgfile, indent=2)
+                return
+        except Exception as e:
+            eprint(cf, str(e))
 
 def _load_cfg():
-    try:
-        with open(_JITENPAI_CFG, 'r') as cfgfile:
-            cfg.update(json.load(cfgfile))
-    except Exception as e:
-        eprint(_JITENPAI_CFG, str(e))
-    #eprint('cfg =', json.dumps(cfg, indent=2))
+    cdirs = []
+    if os.environ.get('APPDATA'):
+        cdirs.append(os.environ.get('APPDATA'))
+    if os.environ.get('XDG_CONFIG_HOME'):
+        cdirs.append(os.environ.get('XDG_CONFIG_HOME'))
+    if os.environ.get('HOME'):
+        cdirs.append(os.path.join(os.environ.get('HOME'), '.config'))
+        cdirs.append(os.environ.get('HOME'))
+    cdirs.append(os.path.dirname(os.path.realpath(__file__)))
+    for d in cdirs:
+        cf = os.path.join(d, _JITENPAI_CFG)
+        try:
+            with open(cf, 'r') as cfgfile:
+                cfg.update(json.load(cfgfile))
+                cfg['cfgfile'] = cf
+                return
+        except Exception as e:
+            eprint(cf, str(e))
+            pass
 
 
 ############################################################
