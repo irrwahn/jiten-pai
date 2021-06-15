@@ -11,14 +11,16 @@ Phase II
 --------
 [x] Qt GUI
 [x] result formatting
-[ ] preferences, config file
-[ ] history
+[x] preferences, config file
+[x] history
 [x] Romaji input
+[ ] icons, "About" dialog
+[ ] README
 
 
 Phase III
 ---------
-[ ] dict download & conversion (as separate tool!)
+[ ] dict download & conversion (as separate tool?)
 
 
 Phase IV
