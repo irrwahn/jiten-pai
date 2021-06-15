@@ -13,7 +13,7 @@ See `LICENSE` file for more information.
 """
 
 
-_JITENPAI_VERSION = '0.0.3'
+_JITENPAI_VERSION = '0.0.4'
 _JITENPAI_NAME = 'Jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'
 
@@ -29,7 +29,7 @@ import platform
 import io
 import os
 import re
-import argparse
+import json
 import unicodedata
 import enum
 from configparser import RawConfigParser as ConfigParser
@@ -43,6 +43,9 @@ from PyQt5.QtGui import *
 
 def die(rc=0):
     sys.exit(rc)
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 def contains_cjk(s):
     for c in s:
@@ -63,13 +66,36 @@ cfg = {
         ['edict', '/usr/share/gjiten/dics/edict'],
         ['enamdict', '/usr/share/gjiten/dics/enamdict'],
     ],
-    'max_res': 100,
+    'dict_idx': 0,
+    'dict_all': False,
+    'limit': 100,
+    'do_limit': True,
+    'jap_opt': [True, False, False, False],
+    'eng_opt': [False, True, False],
+    'romaji': False,
     'nfont': 'sans',
     'nfont_sz': 12,
     'lfont': 'IPAPMincho',
     'lfont_sz': 24,
     'hl_col': 'blue',
+    'history': [],
+    'max_hist': 12,
 }
+
+def _save_cfg():
+    try:
+        with open(_JITENPAI_CFG, 'w') as cfgfile:
+            json.dump(cfg, cfgfile, indent=2)
+    except Exception as e:
+        eprint(_JITENPAI_CFG, str(e))
+
+def _load_cfg():
+    try:
+        with open(_JITENPAI_CFG, 'r') as cfgfile:
+            cfg.update(json.load(cfgfile))
+    except Exception as e:
+        eprint(_JITENPAI_CFG, str(e))
+    #eprint('cfg =', json.dumps(cfg, indent=2))
 
 
 ############################################################
@@ -244,7 +270,8 @@ def alphabet2kana(text):
 ############################################################
 
 
-# widgets / layouts with custom styles
+############################################################
+# widgets and layouts with custom styles
 class zQVBoxLayout(QVBoxLayout):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -311,7 +338,53 @@ class aboutDialog(QDialog):
 
 
 ############################################################
-# 'Preferences' dialog
+# 'Preferences' dialogs
+
+class dictDialog(QDialog):
+    name = ''
+    path = ''
+    def __init__(self, *args, title='', name='', path='', **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = name
+        self.path = path
+        self.init_ui(title, name, path)
+
+    def init_ui(self, title, name, path):
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setWindowTitle(title)
+        self.resize(200, 120)
+        self.name_edit = QLineEdit(name)
+        self.name_edit.setMinimumWidth(200)
+        self.name_edit.textChanged.connect(self.name_chg)
+        self.path_edit = QPushButton(os.path.basename(path))
+        self.path_edit.setMinimumWidth(200)
+        self.path_edit.clicked.connect(self.path_chg)
+        form_layout = QFormLayout()
+        form_layout.addRow('Name: ', self.name_edit)
+        form_layout.addRow('File: ', self.path_edit)
+        add_button = QPushButton('Apply')
+        #add_button.setIcon(jpIcon.apply)
+        add_button.clicked.connect(self.accept)
+        close_button = QPushButton('Close')
+        #close_button.setIcon(jpIcon.close)
+        close_button.clicked.connect(self.reject)
+        btn_layout = QHBoxLayout()
+        btn_layout.addWidget(add_button)
+        btn_layout.addWidget(close_button)
+        dlg_layout = QVBoxLayout(self)
+        dlg_layout.addLayout(form_layout)
+        dlg_layout.addLayout(btn_layout)
+
+    def name_chg(self):
+        self.name = self.name_edit.text()
+
+    def path_chg(self):
+        fn, _ = QFileDialog.getOpenFileName(self, 'Open Dictionary File', '',
+                            options=QFileDialog.DontUseNativeDialog)
+        if fn:
+            self.path_edit.setText(os.path.basename(fn))
+            self.path = fn
+
 
 class prefDialog(QDialog):
     def __init__(self, *args, **kwargs):
@@ -351,7 +424,47 @@ class prefDialog(QDialog):
         fonts_layout.addRow(self.color_button, self.color_edit)
         fonts_layout.addRow('Sample', self.font_sample)
         fonts_group.setLayout(fonts_layout)
-        # buttons
+        # dicts
+        dicts_group = zQGroupBox('Dictionaries')
+        self.dict_list = QTreeWidget()
+        self.dict_list.setAlternatingRowColors(True)
+        self.dict_list.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.dict_list.setRootIsDecorated(False)
+        self.dict_list.setColumnCount(2)
+        self.dict_list.setHeaderLabels(['Dictionary File Path', 'Dictionary Name'])
+        self.dict_list.itemDoubleClicked.connect(self.edit_dict)
+        for d in cfg['dicts']:
+            item = QTreeWidgetItem([d[1], d[0]])
+            self.dict_list.addTopLevelItem(item)
+        hint = self.dict_list.sizeHintForColumn(0)
+        mwid = int(self.width() * 2 / 3)
+        self.dict_list.setColumnWidth(0, mwid)
+        self.dict_list.resizeColumnToContents(1)
+        dicts_add_button = QPushButton('Add')
+        #dicts.add_button.setIcon(jpIcon.add)
+        dicts_add_button.clicked.connect(self.add_dict)
+        dicts_remove_button = QPushButton('Remove')
+        #dicts.remove_button.setIcon(jpIcon.remove)
+        dicts_remove_button.clicked.connect(self.remove_dict)
+        dicts_up_button = QPushButton('Up')
+        #dicts.up_button.setIcon(jpIcon.up)
+        dicts_up_button.clicked.connect(self.up_dict)
+        dicts_down_button = QPushButton('Down')
+        #dicts.down_button.setIcon(jpIcon.down)
+        dicts_down_button.clicked.connect(self.down_dict)
+        dicts_edit_button = QPushButton('Edit')
+        #dicts.edit_button.setIcon(jpIcon.edit)
+        dicts_edit_button.clicked.connect(self.edit_dict)
+        dicts_button_layout = zQHBoxLayout()
+        dicts_button_layout.addWidget(dicts_add_button)
+        dicts_button_layout.addWidget(dicts_remove_button)
+        dicts_button_layout.addWidget(dicts_up_button)
+        dicts_button_layout.addWidget(dicts_down_button)
+        dicts_button_layout.addWidget(dicts_edit_button)
+        dicts_layout = zQVBoxLayout(dicts_group)
+        dicts_layout.addWidget(self.dict_list)
+        dicts_layout.addLayout(dicts_button_layout)
+        # dialog buttons
         self.cancel_button = QPushButton('Cancel')
         #self.cancel_button.setIcon(jpIcon.close)
         self.cancel_button.setToolTip('Close dialog without applying changes')
@@ -373,6 +486,7 @@ class prefDialog(QDialog):
         # dialog layout
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(fonts_group)
+        main_layout.addWidget(dicts_group)
         main_layout.addStretch()
         main_layout.addLayout(button_layout)
         self.update_font_sample()
@@ -419,10 +533,71 @@ class prefDialog(QDialog):
         cfg['lfont_sz'] = int(f[1])
         cfg['hl_col'] = self.color_edit.text()
         self.update_font_sample()
+        d = []
+        it = QTreeWidgetItemIterator(self.dict_list)
+        while it.value():
+            item = it.value()
+            path = item.data(0, Qt.DisplayRole)
+            name = item.data(1, Qt.DisplayRole)
+            d.append([name, path])
+            it += 1
+        cfg['dicts'] = d
+        _save_cfg()
 
     def accept(self):
         self.apply()
         super().accept()
+
+    def add_dict(self):
+        dlg = dictDialog(self, title='Add Dictionary')
+        res = dlg.exec_()
+        if res == QDialog.Accepted and dlg.name and dlg.path:
+            item = QTreeWidgetItem([dlg.path, dlg.name])
+            self.dict_list.addTopLevelItem(item)
+            self.dict_list.setCurrentItem(item)
+
+    def remove_dict(self):
+        if len(self.dict_list.selectedItems()) < 1:
+            return
+        sel = self.dict_list.selectedItems()[0]
+        idx = self.dict_list.indexOfTopLevelItem(sel)
+        self.dict_list.takeTopLevelItem(idx)
+
+    def edit_dict(self):
+        if len(self.dict_list.selectedItems()) < 1:
+            return
+        sel = self.dict_list.selectedItems()[0]
+        path = sel.data(0, Qt.DisplayRole)
+        name = sel.data(1, Qt.DisplayRole)
+        dlg = dictDialog(self, title='Edit Dictionary', name=name, path=path)
+        res = dlg.exec_()
+        if res == QDialog.Accepted and dlg.name and dlg.path:
+            sel.setData(0, Qt.DisplayRole, dlg.path)
+            sel.setData(1, Qt.DisplayRole, dlg.name)
+
+    def up_dict(self):
+        if len(self.dict_list.selectedItems()) < 1:
+            return
+        sel = self.dict_list.selectedItems()[0]
+        idx = self.dict_list.indexOfTopLevelItem(sel)
+        if idx < 1:
+            return;
+        item = self.dict_list.takeTopLevelItem(idx)
+        if item:
+            self.dict_list.insertTopLevelItem(idx - 1, item)
+            self.dict_list.setCurrentItem(item)
+
+    def down_dict(self):
+        if len(self.dict_list.selectedItems()) < 1:
+            return
+        sel = self.dict_list.selectedItems()[0]
+        idx = self.dict_list.indexOfTopLevelItem(sel)
+        if idx >= self.dict_list.topLevelItemCount() - 1:
+            return;
+        item = self.dict_list.takeTopLevelItem(idx)
+        if item:
+            self.dict_list.insertTopLevelItem(idx + 1, item)
+            self.dict_list.setCurrentItem(item)
 
 
 ############################################################
@@ -444,7 +619,7 @@ class jpMainWindow(QMainWindow):
         file_menu = menubar.addMenu('&File')
         quit_action = QAction('&Quit', self)
         quit_action.setShortcut('Ctrl+Q')
-        quit_action.triggered.connect(die)
+        quit_action.triggered.connect(self.closeEvent)
         file_menu.addAction(quit_action)
         edit_menu = menubar.addMenu('&Edit')
         copy_action = QAction('&Copy', self)
@@ -467,10 +642,13 @@ class jpMainWindow(QMainWindow):
         # search options
         japopt_group = zQGroupBox('Japanese Search Options')
         self.japopt_exact = QRadioButton('Exact Matches')
-        self.japopt_exact.setChecked(True)
+        self.japopt_exact.setChecked(cfg['jap_opt'][0])
         self.japopt_start = QRadioButton('Start With Expression')
+        self.japopt_start.setChecked(cfg['jap_opt'][1])
         self.japopt_end = QRadioButton('End With Expression')
+        self.japopt_end.setChecked(cfg['jap_opt'][2])
         self.japopt_any = QRadioButton('Any Matches')
+        self.japopt_any.setChecked(cfg['jap_opt'][3])
         japopt_layout = zQVBoxLayout()
         japopt_layout.addWidget(self.japopt_exact)
         japopt_layout.addWidget(self.japopt_start)
@@ -479,10 +657,13 @@ class jpMainWindow(QMainWindow):
         japopt_layout.addStretch()
         japopt_group.setLayout(japopt_layout)
         self.engopt_group = zQGroupBox('English Search Options')
+        self.engopt_group.setEnabled(not cfg['romaji'])
         self.engopt_expr = QRadioButton('Whole Expressions')
+        self.engopt_expr.setChecked(cfg['eng_opt'][0])
         self.engopt_word = QRadioButton('Whole Words')
+        self.engopt_word.setChecked(cfg['eng_opt'][1])
         self.engopt_any = QRadioButton('Any Matches')
-        self.engopt_any.setChecked(True)
+        self.engopt_any.setChecked(cfg['eng_opt'][2])
         engopt_layout = zQVBoxLayout()
         engopt_layout.addWidget(self.engopt_expr)
         engopt_layout.addWidget(self.engopt_word)
@@ -494,20 +675,26 @@ class jpMainWindow(QMainWindow):
         self.genopt_dictsel = QComboBox()
         for d in cfg['dicts']:
             self.genopt_dictsel.addItem(d[0], d[1])
+        idx = cfg['dict_idx']
+        if idx >= self.genopt_dictsel.count():
+            idx = 0
+        self.genopt_dictsel.setCurrentIndex(idx)
         self.genopt_dict = QRadioButton('Search Dict: ')
+        self.genopt_dict.setChecked(not cfg['dict_all'])
+        self.genopt_dictsel.setEnabled(not cfg['dict_all'])
         self.genopt_dict.toggled.connect(self.genopt_dictsel.setEnabled)
-        self.genopt_dict.setChecked(True)
         genopt_dict_layout.addWidget(self.genopt_dict)
         genopt_dict_layout.addWidget(self.genopt_dictsel)
         self.genopt_alldict = QRadioButton('Search All Dictionaries')
+        self.genopt_alldict.setChecked(cfg['dict_all'])
         # TODO: add "auto adjust options"
         self.genopt_dolimit = QCheckBox('Limit Results: ')
         self.genopt_dolimit.setTristate(False)
-        self.genopt_dolimit.setChecked(True)
+        self.genopt_dolimit.setChecked(cfg['do_limit'])
         self.genopt_limit = QSpinBox()
         self.genopt_limit.setMinimum(1)
         self.genopt_limit.setMaximum(1000)
-        self.genopt_limit.setValue(cfg['max_res'])
+        self.genopt_limit.setValue(cfg['limit'])
         self.genopt_dolimit.toggled.connect(self.genopt_limit.setEnabled)
         genopt_limit_layout = zQHBoxLayout()
         genopt_limit_layout.addWidget(self.genopt_dolimit)
@@ -526,7 +713,10 @@ class jpMainWindow(QMainWindow):
         # search area
         search_group = zQGroupBox('Enter expression')
         self.search_box = QComboBox()
+        for h in cfg['history']:
+            self.search_box.insertItem(self.search_box.count(), h)
         self.search_box.setEditable(True)
+        self.search_box.lineEdit().setText('')
         self.search_box.setMinimumWidth(400)
         self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         QShortcut('Return', self.search_box).activated.connect(self.search)
@@ -537,6 +727,7 @@ class jpMainWindow(QMainWindow):
         clear_button.clicked.connect(lambda: self.search_box.lineEdit().setText(""))
         self.search_romaji = QCheckBox('Romaji')
         self.search_romaji.toggled.connect(self.engopt_group.setDisabled)
+        self.search_romaji.setChecked(cfg['romaji'])
         search_layout = zQHBoxLayout()
         search_layout.addWidget(self.search_box, 100)
         search_layout.addWidget(search_button, 5)
@@ -561,10 +752,42 @@ class jpMainWindow(QMainWindow):
         self.setCentralWidget(main_frame)
         self.search_box.setFocus()
 
+    def kbd_copy(self):
+        self.clipboard.setText(self.result_pane.textCursor().selectedText())
+
+    def kbd_paste(self):
+        self.search_box.lineEdit().setText(self.clipboard.text())
+        self.search_box.setFocus()
+
+    def closeEvent(self, event=None):
+        # update config:
+        cfg['jap_opt'] = [self.japopt_exact.isChecked(),
+                          self.japopt_start.isChecked(),
+                          self.japopt_end.isChecked(),
+                          self.japopt_any.isChecked() ]
+        cfg['eng_opt'] = [self.engopt_expr.isChecked(),
+                          self.engopt_word.isChecked(),
+                          self.engopt_any.isChecked()]
+        cfg['dict_idx'] = self.genopt_dictsel.currentIndex()
+        cfg['dict_all'] = self.genopt_alldict.isChecked()
+        cfg['limit'] = self.genopt_limit.value()
+        cfg['do_limit'] = self.genopt_dolimit.isChecked()
+        cfg['romaji'] = self.search_romaji.isChecked()
+        cfg['history'] = [self.search_box.itemText(i) for i in range(min(cfg['max_hist'], self.search_box.count()))]
+        _save_cfg()
+        die()
+
     def pref_dlg(self):
         dlg = prefDialog(self)
         res = dlg.exec_()
         if res == QDialog.Accepted:
+            idx = self.genopt_dictsel.currentIndex()
+            self.genopt_dictsel.clear()
+            for d in cfg['dicts']:
+                self.genopt_dictsel.addItem(d[0], d[1])
+            if idx >= self.genopt_dictsel.count():
+                idx = 0
+            self.genopt_dictsel.setCurrentIndex(idx)
             self.search()
 
     def about_dlg(self):
@@ -577,10 +800,18 @@ class jpMainWindow(QMainWindow):
         if len(term) < 1:
             return
         self.result_pane.setEnabled(False)
-        # apply search options
+        # convert Romaji
         if self.search_romaji.isChecked():
             term = alphabet2kana(term)
             self.search_box.lineEdit().setText(term)
+        # save to history
+        for i in range(self.search_box.count()):
+            if self.search_box.itemText(i) == term:
+                self.search_box.removeItem(i)
+                break
+        self.search_box.insertItem(0, term)
+        self.search_box.setCurrentIndex(0)
+        # apply search options
         mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
         if mode == ScanMode.JAP:
             term = kata2hira(term)
@@ -610,20 +841,20 @@ class jpMainWindow(QMainWindow):
             elif self.engopt_word.isChecked():
                 term = '\W' + term + '\W'
         # result limiting
-        max_res = self.genopt_limit.value() if self.genopt_limit.isEnabled() else 0
+        limit = self.genopt_limit.value() if self.genopt_limit.isEnabled() else 0
         # perform lookup
         QApplication.processEvents()
         result = []
         if self.genopt_dict.isChecked():
             dic = self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())
-            result = dict_lookup(dic, term, mode, max_res)
+            result = dict_lookup(dic, term, mode, limit)
         else:
             for d in cfg['dicts']:
-                r = dict_lookup(d[1], term, mode, max_res)
+                r = dict_lookup(d[1], term, mode, limit)
                 result.extend(r)
-                max_res -= len(r)
-                if max_res == 0:
-                    max_res = -1
+                limit -= len(r)
+                if limit == 0:
+                    limit = -1
         # format result
         term = self.search_box.lineEdit().text()
         re_term = re.compile(kata2hira(term), re.IGNORECASE)
@@ -651,13 +882,6 @@ class jpMainWindow(QMainWindow):
         self.result_group.setTitle('Search results: %d' % len(result))
         self.result_pane.setEnabled(True)
 
-    def kbd_copy(self):
-        self.clipboard.setText(self.result_pane.textCursor().selectedText())
-
-    def kbd_paste(self):
-        self.search_box.lineEdit().setText(self.clipboard.text())
-        self.search_box.setFocus()
-
 
 ############################################################
 # dictionary lookup
@@ -666,31 +890,34 @@ class jpMainWindow(QMainWindow):
 # 〆日 [しめび] /(n) time limit/closing day/settlement day (payment)/deadline/
 # ハート /(n) heart/(P)/
 
-def dict_lookup(dict_fname, pattern, mode, max_res=0):
+def dict_lookup(dict_fname, pattern, mode, limit=0):
     result = []
     cnt = 0
-    with open(dict_fname) as dict_file:
-        re_pattern = re.compile(pattern, re.IGNORECASE)
-        for line in dict_file:
-            if max_res and cnt >= max_res:
-                break
-            try:
-                # manually splitting the line is actually faster than regex
-                p1 = line.split('[', 1)
-                if len(p1) < 2:
-                    p1 = line.split('/', 1)
-                    p2 = ['', p1[1]]
-                else:
-                    p2 = p1[1].split(']', 1)
-                term = p1[0].strip()
-                hira = p2[0].strip()
-                trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
-            except:
-                continue
-            if (mode == ScanMode.JAP and (re_pattern.search(kata2hira(term)) or re_pattern.search(hira))) \
-            or (mode == ScanMode.ENG and re_pattern.search(trans)):
-                result.append([term, hira, trans])
-                cnt += 1
+    try:
+        with open(dict_fname) as dict_file:
+            re_pattern = re.compile(pattern, re.IGNORECASE)
+            for line in dict_file:
+                if limit and cnt >= limit:
+                    break
+                try:
+                    # manually splitting the line is actually faster than regex
+                    p1 = line.split('[', 1)
+                    if len(p1) < 2:
+                        p1 = line.split('/', 1)
+                        p2 = ['', p1[1]]
+                    else:
+                        p2 = p1[1].split(']', 1)
+                    term = p1[0].strip()
+                    hira = p2[0].strip()
+                    trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
+                except:
+                    continue
+                if (mode == ScanMode.JAP and (re_pattern.search(kata2hira(term)) or re_pattern.search(hira))) \
+                or (mode == ScanMode.ENG and re_pattern.search(trans)):
+                    result.append([term, hira, trans])
+                    cnt += 1
+    except Exception as e:
+        eprint(dict_fname, str(e))
     return result
 
 
@@ -698,6 +925,7 @@ def dict_lookup(dict_fname, pattern, mode, max_res=0):
 # main function
 
 def main():
+    _load_cfg()
     # set up window
     os.environ['QT_LOGGING_RULES'] = 'qt5ct.debug=false'
     app = QApplication(sys.argv)
