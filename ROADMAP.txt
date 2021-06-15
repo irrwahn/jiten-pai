@@ -13,7 +13,7 @@ Phase II
 [x] result formatting
 [ ] preferences, config file
 [ ] history
-[ ] romaji support?
+[x] Romaji input
 
 
 Phase III
