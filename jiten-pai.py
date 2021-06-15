@@ -440,6 +440,13 @@ class jpMainWindow(QMainWindow):
         # perform lookup
         QApplication.processEvents()
         result = dict_lookup(cfg['dict'], term, mode, max_res)
+        #
+        self.result_group.setTitle('Search results: %d' % len(result))
+        self.result_pane.setHtml('')
+        self.result_pane.setEnabled(True);
+        # bail early on empty result
+        if 0 == len(result):
+            return
         # format result
         term = self.search_box.lineEdit().text()
         re_term = re.compile(kata2hira(term), re.IGNORECASE)
@@ -486,7 +493,10 @@ def dict_lookup(dict_fname, pattern, mode, max_res=0):
     result = []
     cnt = 0
     with open(dict_fname) as dict_file:
-        re_pattern = re.compile(pattern, re.IGNORECASE)
+        try:
+            re_pattern = re.compile(pattern, re.IGNORECASE)
+        except:
+            return result
         for line in dict_file:
             if max_res and cnt >= max_res:
                 break
