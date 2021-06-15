@@ -358,7 +358,7 @@ class jpMainWindow(QMainWindow):
         search_group = zQGroupBox('Enter expression')
         self.search_box = QComboBox()
         self.search_box.setEditable(True)
-        self.search_box.setMinimumWidth(400);
+        self.search_box.setMinimumWidth(400)
         self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         QShortcut('Return', self.search_box).activated.connect(self.search)
         search_button = QPushButton('Search')
@@ -389,12 +389,20 @@ class jpMainWindow(QMainWindow):
         self.setCentralWidget(main_frame)
         self.search_box.setFocus()
 
+    def pref_dlg(self):
+        dlg = prefDialog(self)
+        res = dlg.exec_()
+
+    def about_dlg(self):
+        dlg = aboutDialog(self)
+        res = dlg.exec_()
+
     def search(self):
         term = self.search_box.lineEdit().text().strip()
         self.search_box.lineEdit().setText(term)
         if len(term) < 1:
             return
-        self.result_pane.setEnabled(False);
+        self.result_pane.setEnabled(False)
         # apply search options
         if self.genopt_romaji.isChecked():
             term = alphabet2kana(term)
@@ -457,7 +465,7 @@ class jpMainWindow(QMainWindow):
         html.append('</div>')
         self.result_pane.setHtml(''.join(html))
         self.result_group.setTitle('Search results: %d' % len(result))
-        self.result_pane.setEnabled(True);
+        self.result_pane.setEnabled(True)
 
     def kbd_copy(self):
         self.clipboard.setText(self.result_pane.textCursor().selectedText())
@@ -476,7 +484,7 @@ class jpMainWindow(QMainWindow):
 
 def dict_lookup(dict_fname, pattern, mode, max_res=0):
     result = []
-    cnt = 0;
+    cnt = 0
     with open(dict_fname) as dict_file:
         re_pattern = re.compile(pattern, re.IGNORECASE)
         for line in dict_file:
