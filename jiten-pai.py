@@ -863,7 +863,10 @@ class jpMainWindow(QMainWindow):
             return
         # format result
         term = self.search_box.lineEdit().text()
-        re_term = re.compile(kata2hira(term), re.IGNORECASE)
+        try:
+            re_term = re.compile(kata2hira(term), re.IGNORECASE)
+        except:
+            re_term = re.compile('', re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['nfont'], cfg['nfont_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         hlfmt = '<span style="color: %s;">' % cfg['hl_col']
