@@ -59,7 +59,10 @@ class ScanMode(enum.Enum):
 # configuration
 
 cfg = {
-    'dict': '/usr/share/gjiten/dics/edict',
+    'dicts': [
+        ['edict', '/usr/share/gjiten/dics/edict'],
+        ['enamdict', '/usr/share/gjiten/dics/enamdict'],
+    ],
     'max_res': 100,
     'nfont': 'sans',
     'nfont_sz': 12,
@@ -487,10 +490,18 @@ class jpMainWindow(QMainWindow):
         engopt_layout.addStretch()
         self.engopt_group.setLayout(engopt_layout)
         genopt_group = zQGroupBox('General Options')
-        # TODO: add remaining general options
-        self.genopt_romaji = QCheckBox('Enable Romaji Input')
-        self.genopt_romaji.toggled.connect(self.engopt_group.setDisabled)
-        self.genopt_dolimit = QCheckBox('Limit Results:')
+        genopt_dict_layout = zQHBoxLayout()
+        self.genopt_dictsel = QComboBox()
+        for d in cfg['dicts']:
+            self.genopt_dictsel.addItem(d[0], d[1])
+        self.genopt_dict = QRadioButton('Search Dict: ')
+        self.genopt_dict.toggled.connect(self.genopt_dictsel.setEnabled)
+        self.genopt_dict.setChecked(True)
+        genopt_dict_layout.addWidget(self.genopt_dict)
+        genopt_dict_layout.addWidget(self.genopt_dictsel)
+        self.genopt_alldict = QRadioButton('Search All Dictionaries')
+        # TODO: add "auto adjust options"
+        self.genopt_dolimit = QCheckBox('Limit Results: ')
         self.genopt_dolimit.setTristate(False)
         self.genopt_dolimit.setChecked(True)
         self.genopt_limit = QSpinBox()
@@ -502,7 +513,8 @@ class jpMainWindow(QMainWindow):
         genopt_limit_layout.addWidget(self.genopt_dolimit)
         genopt_limit_layout.addWidget(self.genopt_limit)
         genopt_layout = zQVBoxLayout()
-        genopt_layout.addWidget(self.genopt_romaji)
+        genopt_layout.addLayout(genopt_dict_layout)
+        genopt_layout.addWidget(self.genopt_alldict)
         genopt_layout.addLayout(genopt_limit_layout)
         genopt_layout.addStretch()
         genopt_group.setLayout(genopt_layout)
@@ -523,10 +535,13 @@ class jpMainWindow(QMainWindow):
         search_button.clicked.connect(self.search)
         clear_button = QPushButton('Clear')
         clear_button.clicked.connect(lambda: self.search_box.lineEdit().setText(""))
+        self.search_romaji = QCheckBox('Romaji')
+        self.search_romaji.toggled.connect(self.engopt_group.setDisabled)
         search_layout = zQHBoxLayout()
         search_layout.addWidget(self.search_box, 100)
         search_layout.addWidget(search_button, 5)
         search_layout.addWidget(clear_button, 1)
+        search_layout.addWidget(self.search_romaji)
         search_group.setLayout(search_layout)
         # result area
         self.result_group = zQGroupBox('Search results:')
@@ -563,7 +578,7 @@ class jpMainWindow(QMainWindow):
             return
         self.result_pane.setEnabled(False)
         # apply search options
-        if self.genopt_romaji.isChecked():
+        if self.search_romaji.isChecked():
             term = alphabet2kana(term)
             self.search_box.lineEdit().setText(term)
         mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
@@ -598,7 +613,17 @@ class jpMainWindow(QMainWindow):
         max_res = self.genopt_limit.value() if self.genopt_limit.isEnabled() else 0
         # perform lookup
         QApplication.processEvents()
-        result = dict_lookup(cfg['dict'], term, mode, max_res)
+        result = []
+        if self.genopt_dict.isChecked():
+            dic = self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())
+            result = dict_lookup(dic, term, mode, max_res)
+        else:
+            for d in cfg['dicts']:
+                r = dict_lookup(d[1], term, mode, max_res)
+                result.extend(r)
+                max_res -= len(r)
+                if max_res == 0:
+                    max_res = -1
         # format result
         term = self.search_box.lineEdit().text()
         re_term = re.compile(kata2hira(term), re.IGNORECASE)
