@@ -865,7 +865,8 @@ class jpMainWindow(QMainWindow):
         term = self.search_box.lineEdit().text()
         try:
             re_term = re.compile(kata2hira(term), re.IGNORECASE)
-        except:
+        except Exception as e:
+            eprint(term, str(e))
             re_term = re.compile('', re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['nfont'], cfg['nfont_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
@@ -905,7 +906,8 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
         with open(dict_fname) as dict_file:
             try:
                 re_pattern = re.compile(pattern, re.IGNORECASE)
-            except:
+            except Exception as e:
+                eprint(pattern, str(e))
                 return result
             for line in dict_file:
                 if limit and cnt >= limit:
