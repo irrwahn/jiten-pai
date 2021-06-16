@@ -834,6 +834,7 @@ class jpMainWindow(QMainWindow):
         pref_action.triggered.connect(self.pref_dlg)
         edit_menu.addAction(copy_action)
         edit_menu.addAction(paste_action)
+        edit_menu.addSeparator()
         edit_menu.addAction(pref_action)
         tools_menu = menubar.addMenu('&Tools')
         # TODO: Tools menu
