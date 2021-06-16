@@ -72,27 +72,28 @@ cfg = {
     'do_limit': True,
     'auto_adj': True,
     'jap_opt': [True, False, False, False],
-    'eng_opt': [False, True, False],
+    'eng_opt': [True, False, False],
     'romaji': False,
     'nfont': 'sans',
     'nfont_sz': 12,
     'lfont': 'IPAPMincho',
     'lfont_sz': 24,
     'hl_col': 'blue',
-    'history': [],
     'max_hist': 12,
+    'history': [],
+    # run-time only, not saved:
     'cfgfile': None,
 }
 
 def _save_cfg():
+    s_cfg = cfg.copy()
+    s_cfg.pop('cfgfile', None)
     try:
         with open(cfg['cfgfile'], 'w') as cfgfile:
-            #cfg.pop('cfgfile', None)
-            json.dump(cfg, cfgfile, indent=2)
+            json.dump(s_cfg, cfgfile, indent=2)
             return
     except Exception as e:
         eprint(cfg['cfgfile'], str(e))
-        #cfg.pop('cfgfile', None)
     cdirs = []
     if os.environ.get('APPDATA'):
         cdirs.append(os.environ.get('APPDATA'))
@@ -106,7 +107,7 @@ def _save_cfg():
         cf = os.path.join(d, _JITENPAI_CFG)
         try:
             with open(cf, 'w') as cfgfile:
-                json.dump(cfg, cfgfile, indent=2)
+                json.dump(s_cfg, cfgfile, indent=2)
                 return
         except Exception as e:
             eprint(cf, str(e))
