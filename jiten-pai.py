@@ -13,7 +13,7 @@ See `LICENSE` file for more information.
 """
 
 
-_JITENPAI_VERSION = '0.0.4'
+_JITENPAI_VERSION = '0.0.5'
 _JITENPAI_NAME = 'Jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'
 
@@ -70,6 +70,7 @@ cfg = {
     'dict_all': False,
     'limit': 100,
     'do_limit': True,
+    'auto_adj': True,
     'jap_opt': [True, False, False, False],
     'eng_opt': [False, True, False],
     'romaji': False,
@@ -538,7 +539,8 @@ class dictDialog(QDialog):
         self.name = self.name_edit.text()
 
     def path_chg(self):
-        fn, _ = QFileDialog.getOpenFileName(self, 'Open Dictionary File', '',
+        fn, _ = QFileDialog.getOpenFileName(self, 'Open Dictionary File',
+                            os.path.dirname(self.path),
                             options=QFileDialog.DontUseNativeDialog)
         if fn:
             self.path_edit.setText(os.path.basename(fn))
@@ -551,6 +553,14 @@ class dictDialog(QDialog):
             mbox.setIcon(QMessageBox.Critical)
             mbox.setStandardButtons(QMessageBox.Ok)
             mbox.setText('Dictionary file not found!')
+            mbox.exec_()
+            return False
+        if not self.name:
+            mbox = QMessageBox(self)
+            mbox.setWindowTitle('Name Error')
+            mbox.setIcon(QMessageBox.Critical)
+            mbox.setStandardButtons(QMessageBox.Ok)
+            mbox.setText('No name supplied for dictionary.')
             mbox.exec_()
             return False
         super().accept()
@@ -823,7 +833,7 @@ class jpMainWindow(QMainWindow):
         about_action = QAction('&About', self)
         help_menu.addAction(about_action)
         about_action.triggered.connect(self.about_dlg)
-        # search options
+        # japanese search options
         japopt_group = zQGroupBox('Japanese Search Options')
         self.japopt_exact = QRadioButton('E&xact Matches')
         self.japopt_exact.setChecked(cfg['jap_opt'][0])
@@ -840,6 +850,7 @@ class jpMainWindow(QMainWindow):
         japopt_layout.addWidget(self.japopt_any)
         japopt_layout.addStretch()
         japopt_group.setLayout(japopt_layout)
+        # english search options
         self.engopt_group = zQGroupBox('English Search Options')
         self.engopt_group.setEnabled(not cfg['romaji'])
         self.engopt_expr = QRadioButton('Wh&ole Expressions')
@@ -854,6 +865,7 @@ class jpMainWindow(QMainWindow):
         engopt_layout.addWidget(self.engopt_any)
         engopt_layout.addStretch()
         self.engopt_group.setLayout(engopt_layout)
+        # general search options
         genopt_group = zQGroupBox('General Options')
         genopt_dict_layout = zQHBoxLayout()
         self.genopt_dictsel = QComboBox()
@@ -871,7 +883,9 @@ class jpMainWindow(QMainWindow):
         genopt_dict_layout.addWidget(self.genopt_dictsel)
         self.genopt_alldict = QRadioButton('Search All D&ictionaries')
         self.genopt_alldict.setChecked(cfg['dict_all'])
-        # TODO: add "auto adjust options"
+        self.genopt_auto = QCheckBox('A&uto Adjust Options')
+        self.genopt_auto.setTristate(False)
+        self.genopt_auto.setChecked(cfg['auto_adj'])
         self.genopt_dolimit = QCheckBox('&Limit Results: ')
         self.genopt_dolimit.setTristate(False)
         self.genopt_dolimit.setChecked(cfg['do_limit'])
@@ -880,6 +894,7 @@ class jpMainWindow(QMainWindow):
         self.genopt_limit.setMaximum(1000)
         self.genopt_limit.setValue(cfg['limit'])
         self.genopt_limit.setMinimumWidth(130)
+        self.genopt_limit.setEnabled(cfg['do_limit'])
         self.genopt_dolimit.toggled.connect(self.genopt_limit.setEnabled)
         genopt_limit_layout = zQHBoxLayout()
         genopt_limit_layout.addWidget(self.genopt_dolimit)
@@ -887,9 +902,11 @@ class jpMainWindow(QMainWindow):
         genopt_layout = zQVBoxLayout()
         genopt_layout.addLayout(genopt_dict_layout)
         genopt_layout.addWidget(self.genopt_alldict)
+        genopt_layout.addWidget(self.genopt_auto)
         genopt_layout.addLayout(genopt_limit_layout)
         genopt_layout.addStretch()
         genopt_group.setLayout(genopt_layout)
+        # options layout
         opt_layout = zQHBoxLayout()
         opt_layout.addWidget(japopt_group)
         opt_layout.addWidget(self.engopt_group)
@@ -998,8 +1015,60 @@ class jpMainWindow(QMainWindow):
         self.search_box.setFocus()
         self.search_box.lineEdit().setText("")
 
+    def _search_apply_options(self, term, mode):
+        s_term = term
+        if mode == ScanMode.JAP:
+            s_term = kata2hira(s_term)
+            if self.japopt_exact.isChecked():
+                if s_term[0] != '^':
+                    s_term = '^' + s_term
+                if s_term[-1] != '$':
+                    s_term = s_term + '$'
+            elif self.japopt_start.isChecked():
+                if s_term[0] != '^':
+                    s_term = '^' + s_term
+                if s_term[-1] == '$':
+                    s_term = s_term[:-1]
+            elif self.japopt_end.isChecked():
+                if s_term[0] == '^':
+                    s_term = s_term[1:]
+                if s_term[-1] != '$':
+                    s_term = s_term + '$'
+            elif self.japopt_any.isChecked():
+                if s_term[0] == '^':
+                    s_term = s_term[1:]
+                if s_term[-1] == '$':
+                    s_term = s_term[:-1]
+        else:
+            if self.engopt_expr.isChecked():
+                s_term = '\W( to)? ' + s_term + '(\s+\(.*\))?;'
+            elif self.engopt_word.isChecked():
+                s_term = '\W' + s_term + '\W'
+        return s_term
+
+    def _search_relax(self, mode):
+        if mode == ScanMode.JAP:
+            if self.japopt_exact.isChecked():
+                self.japopt_start.setChecked(True);
+                return True
+            elif self.japopt_start.isChecked():
+                self.japopt_end.setChecked(True);
+                return True
+            elif self.japopt_end.isChecked():
+                self.japopt_any.setChecked(True);
+                return True
+        else:
+            if self.engopt_expr.isChecked():
+                self.engopt_word.setChecked(True);
+                return True
+            elif self.engopt_word.isChecked():
+                self.engopt_any.setChecked(True);
+                return True
+        return False
+
     def search(self):
         self.search_box.setFocus()
+        # validate input
         term = self.search_box.lineEdit().text().strip()
         if len(term) < 1:
             return
@@ -1019,63 +1088,40 @@ class jpMainWindow(QMainWindow):
                 break
         self.search_box.insertItem(0, term)
         self.search_box.setCurrentIndex(0)
-        # apply search options
-        mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
-        if mode == ScanMode.JAP:
-            term = kata2hira(term)
-            if self.japopt_exact.isChecked():
-                if term[0] != '^':
-                    term = '^' + term
-                if term[-1] != '$':
-                    term = term + '$'
-            elif self.japopt_start.isChecked():
-                if term[0] != '^':
-                    term = '^' + term
-                if term[-1] == '$':
-                    term = term[:-1]
-            elif self.japopt_end.isChecked():
-                if term[0] == '^':
-                    term = term[1:]
-                if term[-1] != '$':
-                    term = term + '$'
-            elif self.japopt_any.isChecked():
-                if term[0] == '^':
-                    term = term[1:]
-                if term[-1] == '$':
-                    term = term[:-1]
-        else:
-            if self.engopt_expr.isChecked():
-                term = '\W( to)? ' + term + '(\s+\(.*\))?;'
-            elif self.engopt_word.isChecked():
-                term = '\W' + term + '\W'
         # result limiting
         limit = self.genopt_limit.value() if self.genopt_limit.isEnabled() else 0
-        # perform lookup
+        # search
         self.result_group.setTitle('Search results: ...')
         QApplication.processEvents()
+        mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
         result = []
-        if self.genopt_dict.isChecked():
-            dic = self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())
-            result = dict_lookup(dic, term, mode, limit)
-        else:
-            for d in cfg['dicts']:
-                r = dict_lookup(d[1], term, mode, limit)
-                result.extend(r)
-                limit -= len(r)
-                if limit == 0:
-                    limit = -1
+        while 0 == len(result):
+            # apply search options
+            s_term = self._search_apply_options(term, mode)
+            # perform lookup
+            if self.genopt_dict.isChecked():
+                dic = self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())
+                result = dict_lookup(dic, s_term, mode, limit)
                 self.result_group.setTitle(self.result_group.title() + '.')
                 QApplication.processEvents()
+            else:
+                for d in cfg['dicts']:
+                    r = dict_lookup(d[1], s_term, mode, limit)
+                    result.extend(r)
+                    limit -= len(r)
+                    if limit == 0:
+                        limit = -1
+                    self.result_group.setTitle(self.result_group.title() + '.')
+                    QApplication.processEvents()
+            # relax search options
+            if len(result) == 0 and self.genopt_auto.isChecked():
+                if not self._search_relax(mode):
+                    break;
+        # report results
         self.result_group.setTitle('Search results: %d' % len(result))
         QApplication.processEvents()
-        # bail early on empty result
-        if 0 == len(result):
-            self.result_pane.setHtml('')
-            self.result_pane.setEnabled(True);
-            return
         # format result
-        term = self.search_box.lineEdit().text()
-        re_term = re.compile(kata2hira(term), re.IGNORECASE)
+        re_term = re.compile(term, re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['nfont'], cfg['nfont_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         hlfmt = '<span style="color: %s;">' % cfg['hl_col']
