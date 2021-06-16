@@ -86,12 +86,12 @@ cfg = {
 def _save_cfg():
     try:
         with open(cfg['cfgfile'], 'w') as cfgfile:
-            cfg.pop('cfgfile', None)
+            #cfg.pop('cfgfile', None)
             json.dump(cfg, cfgfile, indent=2)
             return
     except Exception as e:
         eprint(cfg['cfgfile'], str(e))
-        cfg.pop('cfgfile', None)
+        #cfg.pop('cfgfile', None)
     cdirs = []
     if os.environ.get('APPDATA'):
         cdirs.append(os.environ.get('APPDATA'))
