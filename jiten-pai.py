@@ -521,10 +521,10 @@ class dictDialog(QDialog):
         form_layout = QFormLayout()
         form_layout.addRow('Name: ', self.name_edit)
         form_layout.addRow('File: ', self.path_edit)
-        add_button = QPushButton('Apply')
+        add_button = QPushButton('&Apply')
         add_button.setIcon(jpIcon.apply)
         add_button.clicked.connect(self.accept)
-        cancel_button = QPushButton('Cancel')
+        cancel_button = QPushButton('&Cancel')
         cancel_button.setIcon(jpIcon.cancel)
         cancel_button.clicked.connect(self.reject)
         btn_layout = QHBoxLayout()
@@ -604,22 +604,22 @@ class prefDialog(QDialog):
         self.dict_list.setHeaderLabels(['Dictionary File Path', 'Dictionary Name'])
         self.dict_list.itemDoubleClicked.connect(self.edit_dict)
         self.dict_list.itemSelectionChanged.connect(self.sel_chg)
-        self.dicts_add_button = QPushButton('Add')
+        self.dicts_add_button = QPushButton('&Add')
         self.dicts_add_button.setIcon(jpIcon.add)
         self.dicts_add_button.clicked.connect(self.add_dict)
-        self.dicts_remove_button = QPushButton('Remove')
+        self.dicts_remove_button = QPushButton('&Remove')
         self.dicts_remove_button.setIcon(jpIcon.remove)
         self.dicts_remove_button.setEnabled(False)
         self.dicts_remove_button.clicked.connect(self.remove_dict)
-        self.dicts_up_button = QPushButton('Up')
+        self.dicts_up_button = QPushButton('&Up')
         self.dicts_up_button.setIcon(jpIcon.up)
         self.dicts_up_button.setEnabled(False)
         self.dicts_up_button.clicked.connect(self.up_dict)
-        self.dicts_down_button = QPushButton('Down')
+        self.dicts_down_button = QPushButton('&Down')
         self.dicts_down_button.setIcon(jpIcon.down)
         self.dicts_down_button.setEnabled(False)
         self.dicts_down_button.clicked.connect(self.down_dict)
-        self.dicts_prop_button = QPushButton('Properties')
+        self.dicts_prop_button = QPushButton('&Properties')
         self.dicts_prop_button.setIcon(jpIcon.properties)
         self.dicts_prop_button.setEnabled(False)
         self.dicts_prop_button.clicked.connect(self.edit_dict)
@@ -633,15 +633,15 @@ class prefDialog(QDialog):
         dicts_layout.addWidget(self.dict_list)
         dicts_layout.addLayout(dicts_button_layout)
         # dialog buttons
-        self.cancel_button = QPushButton('Cancel')
+        self.cancel_button = QPushButton('&Cancel')
         self.cancel_button.setIcon(jpIcon.cancel)
         self.cancel_button.setToolTip('Close dialog without applying changes')
         self.cancel_button.clicked.connect(self.reject)
-        self.apply_button = QPushButton('Apply')
+        self.apply_button = QPushButton('&Apply')
         self.apply_button.setIcon(jpIcon.apply)
         self.apply_button.setToolTip('Apply current changes')
         self.apply_button.clicked.connect(self.apply)
-        self.ok_button = QPushButton('Ok')
+        self.ok_button = QPushButton('&Ok')
         self.ok_button.setIcon(jpIcon.ok)
         self.ok_button.setToolTip('Apply current changes and close dialog')
         self.ok_button.clicked.connect(self.accept)
@@ -825,13 +825,13 @@ class jpMainWindow(QMainWindow):
         about_action.triggered.connect(self.about_dlg)
         # search options
         japopt_group = zQGroupBox('Japanese Search Options')
-        self.japopt_exact = QRadioButton('Exact Matches')
+        self.japopt_exact = QRadioButton('E&xact Matches')
         self.japopt_exact.setChecked(cfg['jap_opt'][0])
-        self.japopt_start = QRadioButton('Start With Expression')
+        self.japopt_start = QRadioButton('&Start With Expression')
         self.japopt_start.setChecked(cfg['jap_opt'][1])
-        self.japopt_end = QRadioButton('End With Expression')
+        self.japopt_end = QRadioButton('E&nd With Expression')
         self.japopt_end.setChecked(cfg['jap_opt'][2])
-        self.japopt_any = QRadioButton('Any Matches')
+        self.japopt_any = QRadioButton('&Any Matches')
         self.japopt_any.setChecked(cfg['jap_opt'][3])
         japopt_layout = zQVBoxLayout()
         japopt_layout.addWidget(self.japopt_exact)
@@ -842,11 +842,11 @@ class jpMainWindow(QMainWindow):
         japopt_group.setLayout(japopt_layout)
         self.engopt_group = zQGroupBox('English Search Options')
         self.engopt_group.setEnabled(not cfg['romaji'])
-        self.engopt_expr = QRadioButton('Whole Expressions')
+        self.engopt_expr = QRadioButton('Wh&ole Expressions')
         self.engopt_expr.setChecked(cfg['eng_opt'][0])
-        self.engopt_word = QRadioButton('Whole Words')
+        self.engopt_word = QRadioButton('&Whole Words')
         self.engopt_word.setChecked(cfg['eng_opt'][1])
-        self.engopt_any = QRadioButton('Any Matches')
+        self.engopt_any = QRadioButton('Any &Matches')
         self.engopt_any.setChecked(cfg['eng_opt'][2])
         engopt_layout = zQVBoxLayout()
         engopt_layout.addWidget(self.engopt_expr)
@@ -863,16 +863,16 @@ class jpMainWindow(QMainWindow):
         if idx >= self.genopt_dictsel.count():
             idx = 0
         self.genopt_dictsel.setCurrentIndex(idx)
-        self.genopt_dict = QRadioButton('Search Dict: ')
+        self.genopt_dict = QRadioButton('Search &Dict: ')
         self.genopt_dict.setChecked(not cfg['dict_all'])
         self.genopt_dictsel.setEnabled(not cfg['dict_all'])
         self.genopt_dict.toggled.connect(self.genopt_dictsel.setEnabled)
         genopt_dict_layout.addWidget(self.genopt_dict)
         genopt_dict_layout.addWidget(self.genopt_dictsel)
-        self.genopt_alldict = QRadioButton('Search All Dictionaries')
+        self.genopt_alldict = QRadioButton('Search All D&ictionaries')
         self.genopt_alldict.setChecked(cfg['dict_all'])
         # TODO: add "auto adjust options"
-        self.genopt_dolimit = QCheckBox('Limit Results: ')
+        self.genopt_dolimit = QCheckBox('&Limit Results: ')
         self.genopt_dolimit.setTristate(False)
         self.genopt_dolimit.setChecked(cfg['do_limit'])
         self.genopt_limit = QSpinBox()
@@ -914,8 +914,9 @@ class jpMainWindow(QMainWindow):
         search_button.clicked.connect(self.search)
         clear_button = QPushButton()
         clear_button.setIcon(jpIcon.clear)
-        clear_button.clicked.connect(lambda: self.search_box.lineEdit().setText(""))
-        self.search_romaji = QCheckBox('Romaji')
+        clear_button.clicked.connect(self.search_clear)
+        QShortcut('Alt+C', self.search_box).activated.connect(self.search_clear)
+        self.search_romaji = QCheckBox('&Romaji')
         self.search_romaji.toggled.connect(self.engopt_group.setDisabled)
         self.search_romaji.setChecked(cfg['romaji'])
         search_layout = zQHBoxLayout()
@@ -993,9 +994,16 @@ class jpMainWindow(QMainWindow):
             self.search_box.lineEdit().setStyleSheet('QLineEdit { background-color: #ffffd8; }');
             self.search_box_edit_valid = False
 
+    def search_clear(self):
+        self.search_box.setFocus()
+        self.search_box.lineEdit().setText("")
+
     def search(self):
+        self.search_box.setFocus()
         term = self.search_box.lineEdit().text().strip()
-        if len(term) < 1 or not self.search_box_edit_valid:
+        if len(term) < 1:
+            return
+        if not self.search_box_edit_valid:
             self.search_box.lineEdit().setStyleSheet('QLineEdit { background-color: #ffc8b8; }');
             return
         self.search_box.lineEdit().setText(term)
@@ -1043,6 +1051,7 @@ class jpMainWindow(QMainWindow):
         # result limiting
         limit = self.genopt_limit.value() if self.genopt_limit.isEnabled() else 0
         # perform lookup
+        self.result_group.setTitle('Search results: ...')
         QApplication.processEvents()
         result = []
         if self.genopt_dict.isChecked():
@@ -1055,6 +1064,8 @@ class jpMainWindow(QMainWindow):
                 limit -= len(r)
                 if limit == 0:
                     limit = -1
+                self.result_group.setTitle(self.result_group.title() + '.')
+                QApplication.processEvents()
         self.result_group.setTitle('Search results: %d' % len(result))
         QApplication.processEvents()
         # bail early on empty result
