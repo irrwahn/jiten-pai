@@ -32,7 +32,7 @@ import re
 import json
 import unicodedata
 import enum
-from configparser import RawConfigParser as ConfigParser
+import base64
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -332,6 +332,129 @@ class zQGroupBox(QGroupBox):
 
 
 ############################################################
+# Icons
+
+class sQPixmap(QPixmap):
+    def __init__(self, *args, imgdata=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if imgdata is not None:
+            super().loadFromData(base64.b64decode(imgdata))
+
+class jpIcon:
+    """ Icon resource storage with only class attributes, not instantiated."""
+    initialized = False
+    add_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAA0lBMVEX///87a6g2Z6U1ZqU3Z6QzY6I6aKQxXp0rWJYrWZYwX50nUpAsWpgjTYoqV5QpVJIo
+VZImUo4hSockT4oiS4gmUYypwNymvdo0ZaSkvNl7nsgzZKOWsdJnjb0wYJ8xYaCGpMpTfbMsWpgrWZd5msN/n8d9ncV6msRcg7c+baltkL50lsFylMBmirlojbw1ZqQ1ZqU3aKY5aqg7bKk9bao/b6xBca1AcKsnU5EmUo92mcVKebMhTIkhS4iIqdBYh70gSoeTs9dn
+lMeQsddrl8n///95XeUxAAAAFnRSTlMAgfv7gfv39/uB+/v7+4H79/f7gfuBOt2MIAAAAAFiS0dEAIgFHUgAAAAHdElNRQflBhAJFBUZpoqfAAAAc0lEQVQY02NgIBIwMjExoggwi4kzowhISEpJoAhIy8jKwTksrPJybAqK7ErKHJxgAS4VVTV1DU0tbR1dbrAAj56+
+gaGRsYmpmTkvWICP38JSwMpa0MZWSBhujo2dvQOKLQ6OTqgCIs4uIigCoiIiosR6EwD3vgp0XvdNGgAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNi0xNlQwNzoyMDoyMSswMjowMDkb0F0AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDYtMTZUMDc6MjA6MjErMDI6
+MDBIRmjhAAAAAElFTkSuQmCC
+"""
+    apply_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAABEVBMVEX///8ATwAATAAASQAATQAOaAsBWwEATgARaw4AWwAATgASaxAEUwQATAAVaxITZBIA
+TAAshCMEUwQAVQAXaRUJXwcATQAOaAwDUgMXZhUQXA0ASwACUAIYXRQATgACTgIXVhECTgIaVBIATQACTQIcUBQCSAIcUBEATAAATQAATgB2tWOay3u26qF5uGGTxnCZ0pCZ0I+QwW+m0HdYoEKRxWmJxnuIwnqQvWuayGhztGSTyGpZn0GOxGB/wGh7u2aWw2xKjTCK
+wVtksVCPyVxbnD+KwVd3wFV2vFmdyW1OizGDwkpQrCqCxkVkujJdsi2JvUtOgi1/yDVHug5XwhiOx0RUgy2R3j6Y1UdNfSn///9jJoMPAAAAK3RSTlMAHXIOIe3YDeu8bPWRG+nWa/6QGOf1MtuV5vYzjfc0mvmd+TWg+qP6NkYkIiPNwAAAAAFiS0dEAIgFHUgAAAAH
+dElNRQflBhAJFBUZpoqfAAAAgklEQVQY02NgIAUwMjGj8FlYtdnYkeU5dHT1OEEsLm4eIMnLp29gaMQPZAkIGpsIMQiLmJqZW4iKAQXELa2sbSQkbe3sHaSkQTpkHJ2cXVzd3D08ZeUgpsl7efv4+vkHKMjBzFcMDAoOCVVSRtioEhYeoaqM7Ca1SHUNVFdrahHvQwDC
+iA/opeZaowAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNi0xNlQwNzoyMDoyMSswMjowMDkb0F0AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDYtMTZUMDc6MjA6MjErMDI6MDBIRmjhAAAAAElFTkSuQmCC
+"""
+    cancel_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAABwlBMVEX////////Pe3u4PDymAgKyJCS1MTGrERG4PT2/WVmoDw+mDw+mEQ+jCgnJe3ueDw+T
+CgiaBASmCQmtDg65FBOqPDyRDAqUCwuqCwu3GRieIyOUBASmCwu3GhmSCwudCgq0FhWLCQegAACOCwugCwuxFBKKCQedAACmAACSIyOxFhSKBgKZAACjCwuXPDyHBgKUAACgCwu5GxS9e3uCDg6IAgKUCAiiDQ27HxWhWVmCBQKdWVl4Dg6xe3uKPDxrAAB3DQ15EBBs
+AQG7SEfMc3PYiorZi4vNdna5QkLJb23QeXewNzelHByuJSO8SUbLcG/CY2G/XVq/V1S5SkbAYWG5U1CrKyXCYF7BU06+U1OxSES0TUuqKyavPjelMSvMYVnFRka4PzqGBwWcJiKsOzaqQzqcHhfOUkrMNzfEOjScFRCTHhaMEgmaEgu+HxTLFRXGHRSlEw2QDQSREQWc
+Egi1FAjHAADLDQSuFgyaEQWXEQWWBQKuGwq8AADIDgWrBgKcEAWfFwiqAAC/FQeACAO/DgarFwiqGgi+CAO+EwaxFQq8GQ/OHA3QCgO2GQieFQe4GwjMGwnSHArAHAqjFgf////FCuQlAAAAQ3RSTlMAAirVzfr70dWT+Pj+/ir47XQcNfDV7hcX3e12Ft75Gd79Z/ku
+3v1bF+3y/Vtw1f1bF/Aq+HQedvGT/pP4KtXN+fnNf0ybtwAAAAFiS0dEAIgFHUgAAAAHdElNRQflBhAJFBUZpoqfAAAA2klEQVQY02NggABGRgYkwMTMwsrGzsEE43NyObu4url7cHNC+TyeXt4+vn7+AbxgET7+wCABQSFhkeCQUH4+oIBoWLiYOIOEZERkVHSMKFBA
+KjZOmkFGNj4hMSk5RQpon1xqmryMQnpGpqJSVrYcIwOjck6uimpefoGaukZhkTLQOZrFJVqlZeXaOgy6FZWaQDP0qqprauv0DRgMjeob9IACxiaNTc0tpmbmFq1tJsYgh1hatXd0dnX39PZZWUKcam3TP2HipMlTbKxhnrG1s3dwdLKzRfYw3PsA/icuAzQMLNUAAAAl
+dEVYdGRhdGU6Y3JlYXRlADIwMjEtMDYtMTZUMDc6MjA6MjErMDI6MDA5G9BdAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDIxLTA2LTE2VDA3OjIwOjIxKzAyOjAwSEZo4QAAAABJRU5ErkJggg==
+"""
+    clear_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAABcVBMVEX///+OWQSUXwiQWgOTXgiSWgOYYguRWwWSWwCTXQaVXwqSXAawfCmWYAqPWATXwhHT
+vQ6WYgeibhrMzMzfyye5ii6VXgiAgADaxL3WwBLTuQ///wDjxhzaxRXZxR/hzoPXwxDXwg/XvA3ZxBTk0jHZxE6/vwDbyBLZxBTo1zzZxTHPvxDZxRTm1DbZxBPZxBTj0C/YwxDZxBPXwxHMzADZxBHXwhHZxRXizy3axBjaxRXWxRDWwhDZxBTWwhDaxh7n1TrYwxHV
+xBLYxBTZwxPXwxDWxA67jEHbql3Wpld5VyLFk0TpuW7aql/aqVzouG3YwhbWwRLfwDPaxcnr2af36HPp10Deys3bx9bn1bLs22n77W7973L77HLw4Jjhzcbaxtj252D87m/042D05Fru3kz77G/t2FHfyyP87nDu21Du2lT25l/s2kXy4lXj0S/m0EPx4Fzp1z777W3l
+z0P25mXdyR3kzT7y41nXwg/////PJyqrAAAAR3RSTlMASNT9h2D09g7vtoX39EC4XfD0Bfb5wAKL/nUBCav3/P55E9X1owQO1/n5EMv3+L72+Pz5BTz3+vX3yh995fX5+HsrnO/7OErIQ6MAAAABYktHRACIBR1IAAAAB3RJTUUH4gwOFCwjMg6bawAAALFJREFUGNNj
+YEAARiZmFiQuAyubuwc7Ep+D09PLmwtJgJvHx5eXD87lFxD08xfihvOFA0QCg0TFxOECEsEhoWGSUtJQroysnHx4RGSUgiKEr6SsEh0TGxefoKoG5qtraCYmxSTHxGhpQ9Tr6KakxqSlx8ToQQT0DVIyMjOzsnNgAoa5RnmZ+QWFRcXGJmABUzPzFAvLktKyPCuopdY2
+tnb25RWVDo4Ifzg5u7hWVrqBmAA2viL/1jja/wAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNi0xNlQwNzoyMjozNyswMjowMJKUNcQAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMTgtMTItMTRUMTk6NDQ6MzUrMDE6MDA3gAxHAAAAAElFTkSuQmCC
+"""
+    close_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAACSVBMVEUAAACEAACOAACTAACUAACQAACLAAB9AACLAACUAgKZCQmNAACGAAB+AACOAACSAACI
+AABMAACNAACSAACDAACFAACLAAAAAAAAAACPAACVAAB5AABgAACZAACKAAB6AACQAABzAACVAAAcAACoAACLAAAAAACgAACrAAAgAAByAAC1AACbAAAAAAAAAACZAACwAAAQAAAAAACaAADAAACxAAAyAAAAAABlAACrAAC6AAC8AACzAACIAAAAAAAAAAAqAAA3AAAC
+AAAAAACwNTXFYGDHZWW3RESqHR3biYnnp6fop6fimpq3NTWrERHafXreiYLhi4PhioThh4TfhITbgYHcgYG4KSmeAADKSELRf2725eLUi3fbfF/ceGDMbWLy29vUiIjNVFSnAwOvAwLPWDrMkn/////58/HEeVi+ZD/u29bctbK+ODe5EBC5CQDRRAfGVRHEknn38e7q
+2tTXuLCxNhXFIAy7AgCgAAC9EADSRQDaXwDBXAC2jX/TvrmlQAXSSgDLLwC/DQCnAACmAAC+DQDQQQDWXACxWBLj08307u2tYjLRWQDRQgDCFgCsAAC3BADHMQC1SRLo1s3hx63NpHf28O27aDLMSgC9EQCtAACxAACzFQDMi3jmxq3JbgXUfADaqnPnyri5NwCzAwCu
+AgCsGwHQgma/TQXOYQDUbADOaQDal1zCVBCxEAC0AAC6AACrAgCqEwCzLAC7PgDASgDBSwC4NgCsCwC2AACyAACnAgClCQClCwCnBgCvAAC/AAC7AAB8252hAAAARHRSTlMADlF5fV8dC4n0/aseFs7sNwTC6htlowEDzvkUFv5RMW0taBD0Pway5QtC+3UCCIi6DQ6I
++rAYCkew7PTBXgweMjYgD4hci68AAAABYktHRGdb0+mzAAAAB3RJTUUH5QYQCRQVGaaKnwAAAQJJREFUGNNjYAABRiZmFlY2Bhhg5+B0cXVz5+LmgfB5+Tw8vby9vX18+QVAfEEhP/+AwKDgkNCwcGERoIBoRGRUdExsXHxCYlKymDiDhGRKalp6RmZWdnpObp6UNIOM
+bH5BYVF6cUl6aVl5RaUcg3xlVXVNbV16en1DY1NziwKDYmtbe0dnV3p6d09vX/8EJQZllYmTJk9JnzotffqMmbNmqzKoqc+ZOy99/oKFi9IXL1mqockgrqW9bPmKlatWr1m7bv0GHV0GBj39jZs2b9m6bfuOnbsMDEFONTI22b1n7779Bw6amomDPWNuYWl1aKO1ja2R
+ONS7unb2Do5OzhIgNgAd2VDNvmw0xgAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNi0xNlQwNzoyMDoyMSswMjowMDkb0F0AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDYtMTZUMDc6MjA6MjErMDI6MDBIRmjhAAAAAElFTkSuQmCC
+"""
+    down_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAArlBMVEX///+OkIyLjYiIiISIioWIiYWIiIWIi4WIiYWHioWDhoGQko2DhoCEhoF/gX2LjYmA
+gHx/gXx6eneFh4KHiYR5fHZ6fnd2dnOAgn6ChIB1d3Nwc218fXpqbWp3eXVnZ2RzdHFhZF5ucG1cX1ldX1pYWFj////f393w8e/u7u3R0s/X2NX5+fn09PPV1dLd3dvz8/Pc3drz8/Lc3NmMjorb29j9/f3a2tj29vS/wL0NviM0AAAAJnRSTlMAgfQ6y8FHS9nCwvtU
+y9n7VMFL+/tUR1T7+5BU+1T7VPtU+1b4HR8aBOoAAAABYktHRACIBR1IAAAAB3RJTUUH5QYQCRQVGaaKnwAAAJNJREFUGNNljtkOgkAMRcvgDgoKCMgO7pRtENH//zHJBA0j96lpT24PAItABOBCzoRfjIhRBoQ4mc76jvliKQKsLldJZoQs3e5rgE2KmaJ2qKpkmG8B
+dlqBpW6AoZdYaPvuYloVUvtgU6wsk9U6bo30QbF2nf6R5zf4xMb3fhZB2L7aMBh4RfE7jjjT5Jj8uZ++wwf2yQwD/ZEb/wAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNi0xNlQwNzoyMDoyMSswMjowMDkb0F0AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDYtMTZU
+MDc6MjA6MjErMDI6MDBIRmjhAAAAAElFTkSuQmCC
+"""
+    find_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAACAVBMVEX///8rZbYuZrczabgvZ7cpYK0vYq5ogsiUqNcvZbApYa4nXKUyYaouOm4XH0oTGkEs
+N2NDb7AkV50oWZ9JVZciK2MjMFY9QlNlanQqNlUZIk9eZpYqWp8lV50kU5VKZasoMnEzNUBmZmbc3Nv6+vrp6elQVFwhKV5xh74lVJYmUY83Q4orOGZgYGCfm5vY2NP6+vrx8fGNjY0nM1w3RIAhSoU1PYgzN06BgX7RyMjd3czf38/UzMwxNkotNnkhSoYfRX04QY83
+PVWNjYnb287b29s3O1EyOoIfRn4fQ3c8SJYxPXGHh4PVysrq6tUuOmo7R48bPnA1TIg8RphaYHGqqqXT09NaYG43QI1CVpIbPm8ZPW4cPnBDT54+SJ4/TYddZ4s/TIY6RZZHUp0dPGocHiEZPW4eP3JATKFBS6VBSqQ/TJ4kIBwZFhMbPnAxR4QySIUbO2kzQlQgHBkZ
+FhMaPW8dPnEbPnAZGx8aFxQyMzN0bmUcGBUZFhMZFhMrKCMZFhMZFhMZFhOXod22uOrExu68wuiEjdJ0e7qeo8PY3PB3gcm9wuVja7OLkL9ib7aRmc9qcLuXmtZka7WJjc1RXaJqc7ZQWqRdZa5NV55bZKxKVJxMVqNQWqdSXKQjQ3RwdHtEUZZQV6JRWKRHU5pxbmqG
+f3Vua2VEPjcZFhP///8kUNFRAAAAg3RSTlMADn/D8kLq+vvqQkL1+/7+/PUO6vz8toybufz96g5/+fyBWpPny4z8+n/D+7ZdOCyfqnK2/PL+jkkcDxAejv7y8v6KQRUHiv7yw/u1RhgMtft/+PxmMBdm/fx/Dur7/Ktlq/3+/mRC9Pv+/vv2Rur4/P378zV/w/Jt7O/9
+7Ujr4TDj4DJK+8EAAAABYktHRACIBR1IAAAAB3RJTUUH5QYQCRQVGaaKnwAAAO1JREFUGNNjYGBgYGRiZmFhZmJkgAJWNvbmltY2Dk4uCJ+bp72Dl49foLNLkBvEFxLuFhEVE5eQlJLukZEFCsjJ9yooKimrqKqp92loAgW0+rV1dPX0DQyNjE0maAEFTCeamVtYWlnb
+WNjaTbIHCjhMdnRydnF1dXF2c5/iARTwnOrl7ePr5+fr4x8wzRMoEBg0PTgkNCwsNDxiRmQUUCA6ZmZsXHxCQmJS8qyUVJBD0tJnz8nIzMqeO2/+gpxcsEhe/sJFi5cUFBYtXVZcAhKJLi0rLy8rraisWl5dw4AEauvqV6xEFmBoaFzZBABydT5o+YqLbAAAACV0RVh0
+ZGF0ZTpjcmVhdGUAMjAyMS0wNi0xNlQwNzoyMDoyMSswMjowMDkb0F0AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDYtMTZUMDc6MjA6MjErMDI6MDBIRmjhAAAAAElFTkSuQmCC
+"""
+    ok_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAABEVBMVEX///8JIzUJHToAEjcIHz4WM1oOJ00AFDsaNVwMJUsJHzsdOV8OIUMJHDkdNVoeN1kK
+HTkvTXYOIkILIDUdNVYVMFcGHDcZMVUOIj8aMk0aNFYFHjcLHz8cNVMFGzcKHj0aMUYJGjwLIDsXMEAIGzsMHjoYMT4HGjoAAAALHzcbND8HHzoKHTpph6h9mrWryt5ig6VwjKiUsshvi6h0kalEYINifpp/m7J+m7Jng59depZnhJ1lgZs7VG9VcYdphZ5ifZgsSGlR
+a4dbd5RgfZo1TFpNanpmgZ9kgJxje5MtRl1PaolUcJNadpdbdptWcJREX3kqRFNSb5ZffKhigKxQbYkzTFd0lL1oiKY2Ul7///+XLON3AAAALXRSTlMAHXIOIezYDeq8bPWRG+jUa/6QGOfzLtqW5/Uzjvc4oPk8qPtBsPxGAbb8S2r7wD5BAAAAAWJLR0QAiAUdSAAA
+AAd0SU1FB+UGEAkUFRmmip8AAACESURBVBjTY2AgBTAyMaPwWVh12diR5Tn09A04QSwubh4gyctnaGRkzA9kCQiamAoxCIuYmVtYiooBBcStrG1sJSTt7K0dpKRBOmQcnZxdXN3cPTxl5SCmyXt5+/j6+QcoKMLMVwoMCg4JVVZB2KgaFh6hpo7kBA3NSC1tFEdq6Cgy
+EA0A59sQXX3tOeAAAAAldEVYdGRhdGU6Y3JlYXRlADIwMjEtMDYtMTZUMDc6MjA6MjErMDI6MDA5G9BdAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDIxLTA2LTE2VDA3OjIwOjIxKzAyOjAwSEZo4QAAAABJRU5ErkJggg==
+"""
+    open_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAB41BMVEUAAABUf7UAAAAAAAAAAAAAAAAJCQlUf7UqKinExMRYh8KTsctKdaZFX4AAGDgAEzMA
+FDMAEzIAEzIAEzEAEzEAEjAAEjEAGz0oTHb////o5+dKc6dRcpv29vb4+Pj5+Pj19PTr6+v///47UWpRfrhUg7xUgbs9ZJJKapD5+fnv7u6goKDk4d5OYXd4otd8qeFJdq0vUno+Xof49/f39/fy8vKamprx7+/h3ds3T21olM0wUnsrS3H19fWhoKD//PpGXXkqS3Ml
+RmohQ236+fn7+/q4uLi0s7OtrKyysLD08vAOKkoiQWQRNF77+vr6+frf4eXP09jO0tbMz9XJzdHGyM7BxMrg4uUAFDEYOVsAHkXo6OrO0dXQ0ta1u8OHor6nzeuozeqpzeuozeuqzuu84PxPdp+84PunzOqmy+mmzOqozuuqzuqFq9qCpteAptd/pteHreFIXXhQeamD
+qdx8o9Z9o9Z+o9aBptiAp9iCp9iBp9iHruFJX3tReqqKruCDqduGqduHqduFqduEqduEqdqJseRKX3w5Z5tAdrQ/dLBAdLBDerknRGZYf62Hrd+FqdqGqdqDqdqKsONQZIGBqN19o9h+pNh8o9h4o9l8o9l+pNl+o9l5o9l6o9h+o9iBqeD0enAlAAAAGHRSTlMAAANJ
+Sz0IyZb+1bq5r0F6e3x9fn+Bf0Lax4JAAAAAAWJLR0QZ7G61iAAAAAd0SU1FB+UGEAkUFRmmip8AAAEASURBVBjTY2BgYmYBAVY2Bghgl5AEAykOMJeRQVpGUlZOXkGRU0lZRVWNi4FBXUNSTk5TVktbUkdXT9+AgcHQSNJYU9PE1EzS3MLSypqBwcYQJCBnawc0x97B
+kYHByVnSRM7F1UXRzd3D08ubgcHHV1LOzz8gMCg4JDQsPIKBITIqOiY2Lj4hMSk5OTkllZshLT0jMys7JzcvvyAvP7+wiKG4pLSsrLy8orKysqq6uqaWoa6+oaGxoam5BUg2tra1M3R0dgFBNxCCQE8vQ19/64SJE1pBxKQJrZOnMPBMnTZ9xsxZs2fPmTtv+vwFvAx8
+/AKCQsIioqJiwkKCAvziAGE5SZlTQyIOAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDIxLTA2LTE2VDA3OjIwOjIxKzAyOjAwORvQXQAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyMS0wNi0xNlQwNzoyMDoyMSswMjowMEhGaOEAAAAASUVORK5CYII=
+"""
+    properties_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAABFFBMVEUAAADX2dLU19DV2dHT18/l5uLV2dHk5+LW2NLP08vP08zLz8fM0MjHy8PIzMTDxsDE
+x8HAwr3Bw729wLm8v7i6vbZtbW18fXmAgGCysq95eXRVVVXAwruztbD09PKurq7T18/////4+fj29vXR08739/bO0Mu6vbbY2tX5+fj6+vn7+/vKy8mWmJSeoJvd3tz8/Pysraq8vbrs7eyfoJzh4eD9/f3P0M6rramrrKnP0M3w8fCjpKCUlpKztLCnqKSho5+YmpaW
+mJPb29jExcKen5vq6+rs7OyZmpbg4N+Qkozn5+Xo6Ob19fO4ubehop6XmZaNj4uQkY60tbK2t7T6+vqys6+UlpOwsa3z8/C3urOOkYsDQHnnAAAAIHRSTlMAt/qA/veF+Hz++f7+/v7+/v7+/v7+B8YIvXADtd5hLL2kwkcAAAABYktHRCHEbA0WAAAAB3RJTUUH5QYQ
+CRQVGaaKnwAAAKtJREFUGNNFyGd7wWAYBtCXUlW0FLXHLVrjpWLv0WFLjYj5//8H15OE8/EwZoirjA9MZYIqYX7UQyBJWJ4orPggn6n0M4UNGQ3sFA5kNXiheAXnPJf/KnA4KVwQRbFYKleqeKNwo1ZvoNlqd+Cm8ADdXh8D/g2PHj+/f8PReMJvMZ3NhYX0v/Tqgepq
+vZGl7fpdjytltZNkn/8eUPaHYyAYYiyc0pzOkWiMXQAwDB/Bk13zwQAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNi0xNlQwNzoyMDoyMSswMjowMDkb0F0AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDYtMTZUMDc6MjA6MjErMDI6MDBIRmjhAAAAAElFTkSuQmCC
+"""
+    remove_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAllBMVEX///83Z6QzY6IrWJYrWZYwX50nUpAsWpgjTYoqV5QpVJIhSockT4oxYaAwYJ8vX50v
+XpwuXZstW5osWpgrWZd5msN/n8d9ncV8m8V6msR4mcN2l8J0lsFylMBmirlojbw1ZqQ1ZqU3aKY5aqg7bKk9bao/b6xBca1AcKsnU5EmUo8lUY4kT40jTowiTYohTIkhS4j////kRTrLAAAADXRSTlMAgfv7gfv7+/uB+/uBIADwiwAAAAFiS0dEAIgFHUgAAAAHdElN
+RQflBhAJFBUZpoqfAAAARElEQVQY02NgoBNgZOLl4xcQFBIWYWYBC7CKiolLSEpJy8jKsYEF2OUVFJWUVVTV1DU4wAKcXJpa2jq6evoG3Dz0ciYAU8wEmV+EGfYAAAAldEVYdGRhdGU6Y3JlYXRlADIwMjEtMDYtMTZUMDc6MjA6MjErMDI6MDA5G9BdAAAAJXRFWHRk
+YXRlOm1vZGlmeQAyMDIxLTA2LTE2VDA3OjIwOjIxKzAyOjAwSEZo4QAAAABJRU5ErkJggg==
+"""
+    up_png = """iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAhFBMVEX///+Ii4WIioWJiYaTlZGRk4+IioWFhYGQko2OkIuDhoCFhYF/gXyJi4eAgHx/gX16
+fHeFh4J5fHaOkIyLjYh6fHh3d3J1eHJ2d3N0d3R3d3N2d3N1d3Tj4+H09PP9/f35+fnv7+3f4N2cnZjf39ze3tv4+Pfa29jJysfV1tPT09D///8aLa7GAAAAHXRSTlMAVvhU+/uQR/v7VEvB+1TZy/tUgfTCOsLZS0fBy7E7NWcAAAABYktHRACIBR1IAAAAB3RJTUUH
+5QYQCRQVGaaKnwAAAHpJREFUGNN9jdkOgjAUBQ/7JmihIgrUKxRF/f//s23CFhPmbeaetIDBsi2scdzWdTYu7mJVlNODlqK967u5GPd8bypBKEhGMeJIkggT4NDSkGbqkqXD83UETuOb5Sh4gZx9xjNQXqorwL8cuNVNOf2sF/v8Lcwbu4uFHxIdCKWNYfvMAAAAJXRF
+WHRkYXRlOmNyZWF0ZQAyMDIxLTA2LTE2VDA3OjIwOjIxKzAyOjAwORvQXQAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyMS0wNi0xNlQwNzoyMDoyMSswMjowMEhGaOEAAAAASUVORK5CYII=
+"""
+    def __new__(cls):
+        if cls.initialized:
+            return
+        cls.initialized = True
+        jpIcon.add_pxm = sQPixmap(imgdata=jpIcon.add_png)
+        jpIcon.add = QIcon(jpIcon.add_pxm)
+        jpIcon.apply_pxm = sQPixmap(imgdata=jpIcon.apply_png)
+        jpIcon.apply = QIcon(jpIcon.apply_pxm)
+        jpIcon.cancel_pxm = sQPixmap(imgdata=jpIcon.cancel_png)
+        jpIcon.cancel = QIcon(jpIcon.cancel_pxm)
+        jpIcon.clear_pxm = sQPixmap(imgdata=jpIcon.clear_png)
+        jpIcon.clear = QIcon(jpIcon.clear_pxm)
+        jpIcon.close_pxm = sQPixmap(imgdata=jpIcon.close_png)
+        jpIcon.close = QIcon(jpIcon.close_pxm)
+        jpIcon.down_pxm = sQPixmap(imgdata=jpIcon.down_png)
+        jpIcon.down = QIcon(jpIcon.down_pxm)
+        jpIcon.find_pxm = sQPixmap(imgdata=jpIcon.find_png)
+        jpIcon.find = QIcon(jpIcon.find_pxm)
+        jpIcon.ok_pxm = sQPixmap(imgdata=jpIcon.ok_png)
+        jpIcon.ok = QIcon(jpIcon.ok_pxm)
+        jpIcon.open_pxm = sQPixmap(imgdata=jpIcon.open_png)
+        jpIcon.open = QIcon(jpIcon.open_pxm)
+        jpIcon.properties_pxm = sQPixmap(imgdata=jpIcon.properties_png)
+        jpIcon.properties = QIcon(jpIcon.properties_pxm)
+        jpIcon.remove_pxm = sQPixmap(imgdata=jpIcon.remove_png)
+        jpIcon.remove = QIcon(jpIcon.remove_pxm)
+        jpIcon.up_pxm = sQPixmap(imgdata=jpIcon.up_png)
+        jpIcon.up = QIcon(jpIcon.up_pxm)
+
+
+############################################################
 # 'About' dialog
 
 class aboutDialog(QDialog):
@@ -359,7 +482,7 @@ class aboutDialog(QDialog):
         self.qt_button = QPushButton('About Qt')
         self.qt_button.clicked.connect(lambda: QMessageBox.aboutQt(self))
         self.ok_button = QPushButton('Ok')
-        #self.ok_button.setIcon(jpIcon.ok)
+        self.ok_button.setIcon(jpIcon.ok)
         self.ok_button.clicked.connect(self.accept)
         self.btn_layout = QHBoxLayout()
         self.btn_layout.addWidget(self.qt_button)
@@ -377,7 +500,7 @@ class aboutDialog(QDialog):
 class dictDialog(QDialog):
     name = ''
     path = ''
-    def __init__(self, *args, title='', name='', path='', **kwargs):
+    def __init__(self, *args, title='', name='', path='(none)', **kwargs):
         super().__init__(*args, **kwargs)
         self.name = name
         self.path = path
@@ -391,20 +514,22 @@ class dictDialog(QDialog):
         self.name_edit.setMinimumWidth(200)
         self.name_edit.textChanged.connect(self.name_chg)
         self.path_edit = QPushButton(os.path.basename(path))
+        self.path_edit.setStyleSheet("QPushButton {text-align: left; padding: 0.2em;}");
+        self.path_edit.setIcon(jpIcon.open)
         self.path_edit.setMinimumWidth(200)
         self.path_edit.clicked.connect(self.path_chg)
         form_layout = QFormLayout()
         form_layout.addRow('Name: ', self.name_edit)
         form_layout.addRow('File: ', self.path_edit)
         add_button = QPushButton('Apply')
-        #add_button.setIcon(jpIcon.apply)
+        add_button.setIcon(jpIcon.apply)
         add_button.clicked.connect(self.accept)
-        close_button = QPushButton('Close')
-        #close_button.setIcon(jpIcon.close)
-        close_button.clicked.connect(self.reject)
+        cancel_button = QPushButton('Cancel')
+        cancel_button.setIcon(jpIcon.cancel)
+        cancel_button.clicked.connect(self.reject)
         btn_layout = QHBoxLayout()
         btn_layout.addWidget(add_button)
-        btn_layout.addWidget(close_button)
+        btn_layout.addWidget(cancel_button)
         dlg_layout = QVBoxLayout(self)
         dlg_layout.addLayout(form_layout)
         dlg_layout.addLayout(btn_layout)
@@ -418,6 +543,17 @@ class dictDialog(QDialog):
         if fn:
             self.path_edit.setText(os.path.basename(fn))
             self.path = fn
+
+    def accept(self):
+        if not os.path.exists(self.path):
+            mbox = QMessageBox(self)
+            mbox.setWindowTitle('File Open Error')
+            mbox.setIcon(QMessageBox.Critical)
+            mbox.setStandardButtons(QMessageBox.Ok)
+            mbox.setText('Dictionary file not found!')
+            mbox.exec_()
+            return False
+        super().accept()
 
 
 class prefDialog(QDialog):
@@ -467,48 +603,46 @@ class prefDialog(QDialog):
         self.dict_list.setColumnCount(2)
         self.dict_list.setHeaderLabels(['Dictionary File Path', 'Dictionary Name'])
         self.dict_list.itemDoubleClicked.connect(self.edit_dict)
-        for d in cfg['dicts']:
-            item = QTreeWidgetItem([d[1], d[0]])
-            self.dict_list.addTopLevelItem(item)
-        hint = self.dict_list.sizeHintForColumn(0)
-        mwid = int(self.width() * 2 / 3)
-        self.dict_list.setColumnWidth(0, mwid)
-        self.dict_list.resizeColumnToContents(1)
-        dicts_add_button = QPushButton('Add')
-        #dicts.add_button.setIcon(jpIcon.add)
-        dicts_add_button.clicked.connect(self.add_dict)
-        dicts_remove_button = QPushButton('Remove')
-        #dicts.remove_button.setIcon(jpIcon.remove)
-        dicts_remove_button.clicked.connect(self.remove_dict)
-        dicts_up_button = QPushButton('Up')
-        #dicts.up_button.setIcon(jpIcon.up)
-        dicts_up_button.clicked.connect(self.up_dict)
-        dicts_down_button = QPushButton('Down')
-        #dicts.down_button.setIcon(jpIcon.down)
-        dicts_down_button.clicked.connect(self.down_dict)
-        dicts_edit_button = QPushButton('Edit')
-        #dicts.edit_button.setIcon(jpIcon.edit)
-        dicts_edit_button.clicked.connect(self.edit_dict)
+        self.dict_list.itemSelectionChanged.connect(self.sel_chg)
+        self.dicts_add_button = QPushButton('Add')
+        self.dicts_add_button.setIcon(jpIcon.add)
+        self.dicts_add_button.clicked.connect(self.add_dict)
+        self.dicts_remove_button = QPushButton('Remove')
+        self.dicts_remove_button.setIcon(jpIcon.remove)
+        self.dicts_remove_button.setEnabled(False)
+        self.dicts_remove_button.clicked.connect(self.remove_dict)
+        self.dicts_up_button = QPushButton('Up')
+        self.dicts_up_button.setIcon(jpIcon.up)
+        self.dicts_up_button.setEnabled(False)
+        self.dicts_up_button.clicked.connect(self.up_dict)
+        self.dicts_down_button = QPushButton('Down')
+        self.dicts_down_button.setIcon(jpIcon.down)
+        self.dicts_down_button.setEnabled(False)
+        self.dicts_down_button.clicked.connect(self.down_dict)
+        self.dicts_prop_button = QPushButton('Properties')
+        self.dicts_prop_button.setIcon(jpIcon.properties)
+        self.dicts_prop_button.setEnabled(False)
+        self.dicts_prop_button.clicked.connect(self.edit_dict)
         dicts_button_layout = zQHBoxLayout()
-        dicts_button_layout.addWidget(dicts_add_button)
-        dicts_button_layout.addWidget(dicts_remove_button)
-        dicts_button_layout.addWidget(dicts_up_button)
-        dicts_button_layout.addWidget(dicts_down_button)
-        dicts_button_layout.addWidget(dicts_edit_button)
+        dicts_button_layout.addWidget(self.dicts_add_button)
+        dicts_button_layout.addWidget(self.dicts_remove_button)
+        dicts_button_layout.addWidget(self.dicts_up_button)
+        dicts_button_layout.addWidget(self.dicts_down_button)
+        dicts_button_layout.addWidget(self.dicts_prop_button)
         dicts_layout = zQVBoxLayout(dicts_group)
         dicts_layout.addWidget(self.dict_list)
         dicts_layout.addLayout(dicts_button_layout)
         # dialog buttons
         self.cancel_button = QPushButton('Cancel')
-        #self.cancel_button.setIcon(jpIcon.close)
+        self.cancel_button.setIcon(jpIcon.cancel)
         self.cancel_button.setToolTip('Close dialog without applying changes')
         self.cancel_button.clicked.connect(self.reject)
         self.apply_button = QPushButton('Apply')
-        #self.apply_button.setIcon(jpIcon.apply)
+        self.apply_button.setIcon(jpIcon.apply)
         self.apply_button.setToolTip('Apply current changes')
         self.apply_button.clicked.connect(self.apply)
         self.ok_button = QPushButton('Ok')
-        #self.ok_button.setIcon(jpIcon.ok)
+        self.ok_button.setIcon(jpIcon.ok)
         self.ok_button.setToolTip('Apply current changes and close dialog')
         self.ok_button.clicked.connect(self.accept)
         self.ok_button.setDefault(True)
@@ -524,6 +658,21 @@ class prefDialog(QDialog):
         main_layout.addStretch()
         main_layout.addLayout(button_layout)
         self.update_font_sample()
+        for d in cfg['dicts']:
+            item = QTreeWidgetItem([d[1], d[0]])
+            self.dict_list.addTopLevelItem(item)
+            self.dict_list.setCurrentItem(item)
+        hint = self.dict_list.sizeHintForColumn(0)
+        mwid = int(self.width() * 2 / 3)
+        self.dict_list.setColumnWidth(0, mwid)
+        self.dict_list.resizeColumnToContents(1)
+
+    def sel_chg(self):
+        en = len(self.dict_list.selectedItems()) > 0
+        self.dicts_remove_button.setEnabled(en)
+        self.dicts_up_button.setEnabled(en)
+        self.dicts_down_button.setEnabled(en)
+        self.dicts_prop_button.setEnabled(en)
 
     def font_select(self, edit):
         font = QFont()
@@ -539,8 +688,9 @@ class prefDialog(QDialog):
         color = QColor()
         color.setNamedColor(edit.text())
         color = QColorDialog.getColor(color, title='Select Highlight Color')
-        edit.setText(color.name())
-        self.update_font_sample()
+        if color.isValid():
+            edit.setText(color.name())
+            self.update_font_sample()
 
     def update_font_sample(self):
         font = QFont()
@@ -643,7 +793,7 @@ class jpMainWindow(QMainWindow):
         self.init_ui(title)
 
     def init_ui(self, title=''):
-        #jpIcon()
+        jpIcon()
         self.setWindowTitle(title)
         #self.setWindowIcon(jpIcon.jitenpai)
         self.resize(800, 600)
@@ -729,6 +879,7 @@ class jpMainWindow(QMainWindow):
         self.genopt_limit.setMinimum(1)
         self.genopt_limit.setMaximum(1000)
         self.genopt_limit.setValue(cfg['limit'])
+        self.genopt_limit.setMinimumWidth(130)
         self.genopt_dolimit.toggled.connect(self.genopt_limit.setEnabled)
         genopt_limit_layout = zQHBoxLayout()
         genopt_limit_layout.addWidget(self.genopt_dolimit)
@@ -759,8 +910,10 @@ class jpMainWindow(QMainWindow):
         QShortcut('Return', self.search_box).activated.connect(self.search)
         search_button = QPushButton('Search')
         search_button.setDefault(True)
+        search_button.setIcon(jpIcon.find)
         search_button.clicked.connect(self.search)
-        clear_button = QPushButton('Clear')
+        clear_button = QPushButton()
+        clear_button.setIcon(jpIcon.clear)
         clear_button.clicked.connect(lambda: self.search_box.lineEdit().setText(""))
         self.search_romaji = QCheckBox('Romaji')
         self.search_romaji.toggled.connect(self.engopt_group.setDisabled)
