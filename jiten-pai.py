@@ -89,12 +89,13 @@ cfg = {
 def _save_cfg():
     s_cfg = cfg.copy()
     s_cfg.pop('cfgfile', None)
-    try:
-        with open(cfg['cfgfile'], 'w') as cfgfile:
-            json.dump(s_cfg, cfgfile, indent=2)
-            return
-    except Exception as e:
-        eprint(cfg['cfgfile'], str(e))
+    if cfg['cfgfile']:
+        try:
+            with open(cfg['cfgfile'], 'w') as cfgfile:
+                json.dump(s_cfg, cfgfile, indent=2)
+                return
+        except Exception as e:
+            eprint(cfg['cfgfile'], str(e))
     cdirs = []
     if os.environ.get('APPDATA'):
         cdirs.append(os.environ.get('APPDATA'))
