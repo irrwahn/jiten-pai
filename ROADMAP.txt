@@ -14,8 +14,9 @@ Phase II
 [x] preferences, config file
 [x] history
 [x] Romaji input
-[ ] icons, "About" dialog
+[ ] app icon, "About" dialog
 [ ] README
+[ ] verb de-inflection?
 
 
 Phase III

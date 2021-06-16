@@ -69,6 +69,7 @@ cfg = {
     'dict_idx': 0,
     'dict_all': False,
     'limit': 100,
+    'hardlimit': 10000,
     'do_limit': True,
     'auto_adj': True,
     'jap_opt': [True, False, False, False],
@@ -892,7 +893,7 @@ class jpMainWindow(QMainWindow):
         self.genopt_dolimit.setChecked(cfg['do_limit'])
         self.genopt_limit = QSpinBox()
         self.genopt_limit.setMinimum(1)
-        self.genopt_limit.setMaximum(1000)
+        self.genopt_limit.setMaximum(cfg['hardlimit'])
         self.genopt_limit.setValue(cfg['limit'])
         self.genopt_limit.setMinimumWidth(130)
         self.genopt_limit.setEnabled(cfg['do_limit'])
@@ -1090,7 +1091,7 @@ class jpMainWindow(QMainWindow):
         self.search_box.insertItem(0, term)
         self.search_box.setCurrentIndex(0)
         # result limiting
-        limit = self.genopt_limit.value() if self.genopt_limit.isEnabled() else 0
+        limit = self.genopt_limit.value() if self.genopt_limit.isEnabled() else cfg['hardlimit']
         # search
         self.result_group.setTitle('Search results: ...')
         QApplication.processEvents()
@@ -1119,18 +1120,23 @@ class jpMainWindow(QMainWindow):
                 if not self._search_relax(mode):
                     break;
         # report results
-        self.result_group.setTitle('Search results: %d' % len(result))
+        rlen = len(result)
+        self.result_group.setTitle('Search results: %d' % rlen)
         QApplication.processEvents()
         # format result
+        if rlen > cfg['hardlimit'] / 2:
+            self.result_pane.setPlainText('Formatting...')
+            QApplication.processEvents()
         re_term = re.compile(term, re.IGNORECASE)
         nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['nfont'], cfg['nfont_sz'])
         lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         hlfmt = '<span style="color: %s;">' % cfg['hl_col']
-        html = [nfmt]
+        html = [''] * (rlen + 2)
+        html[0] = nfmt
         def hl_repl(match, org=None):
             grp = match.group(0) if org is None else org[match.span()[0]:match.span()[1]]
             return '%s%s</span>' % (hlfmt, grp)
-        for res in result:
+        for idx, res in enumerate(result):
             # highlight matches
             if mode == ScanMode.JAP:
                 res[0] = re_term.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
@@ -1138,11 +1144,8 @@ class jpMainWindow(QMainWindow):
             else:
                 res[2] = re_term.sub(hl_repl, res[2])
             # construct display line
-            html.append('%s%s</span>' % (lfmt, res[0]))
-            if len(res[1]) > 0:
-                html.append(' (%s)' % res[1])
-            html.append(' %s<br>\n' % res[2])
-        html.append('</div>')
+            html[idx+1] = '%s%s</span>%s %s<br>\n' % (lfmt, res[0], (' (%s)'%res[1] if len(res[1]) > 0 else ''), res[2])
+        html[rlen + 1] = '</div>'
         self.result_pane.setHtml(''.join(html))
         self.result_pane.setEnabled(True)
 
