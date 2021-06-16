@@ -870,7 +870,7 @@ class jpMainWindow(QMainWindow):
             self.engopt_expr.setEnabled(en)
             self.engopt_word.setEnabled(en)
             self.engopt_any.setEnabled(en)
-        self.search_romaji = QCheckBox('&Romaji')
+        self.search_romaji = QCheckBox('&Rōmaji Input')
         self.search_romaji.toggled.connect(_english_toggle)
         self.search_romaji.setChecked(cfg['romaji'])
         engopt_layout = zQVBoxLayout()
