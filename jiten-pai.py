@@ -13,7 +13,7 @@ See `LICENSE` file for more information.
 """
 
 
-_JITENPAI_VERSION = '0.0.5'
+_JITENPAI_VERSION = '0.0.6'
 _JITENPAI_NAME = 'Jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'
 
@@ -76,9 +76,9 @@ cfg = {
     'eng_opt': [True, False, False],
     'romaji': False,
     'nfont': 'sans',
-    'nfont_sz': 12,
+    'nfont_sz': 12.0,
     'lfont': 'IPAPMincho',
-    'lfont_sz': 24,
+    'lfont_sz': 24.0,
     'hl_col': 'blue',
     'max_hist': 12,
     'history': [],
@@ -514,12 +514,12 @@ class dictDialog(QDialog):
         self.setWindowTitle(title)
         self.resize(200, 120)
         self.name_edit = QLineEdit(name)
-        self.name_edit.setMinimumWidth(200)
+        self.name_edit.setMinimumWidth(300)
         self.name_edit.textChanged.connect(self.name_chg)
         self.path_edit = QPushButton(os.path.basename(path))
         self.path_edit.setStyleSheet("QPushButton {text-align: left; padding: 0.2em;}");
         self.path_edit.setIcon(jpIcon.open)
-        self.path_edit.setMinimumWidth(200)
+        self.path_edit.setMinimumWidth(300)
         self.path_edit.clicked.connect(self.path_chg)
         form_layout = QFormLayout()
         form_layout.addRow('Name: ', self.name_edit)
@@ -615,7 +615,7 @@ class prefDialog(QDialog):
         self.dict_list.setColumnCount(2)
         self.dict_list.setHeaderLabels(['Dictionary File Path', 'Dictionary Name'])
         self.dict_list.itemDoubleClicked.connect(self.edit_dict)
-        self.dict_list.itemSelectionChanged.connect(self.sel_chg)
+        self.dict_list.itemSelectionChanged.connect(self.dict_list_sel_chg)
         self.dicts_add_button = QPushButton('&Add')
         self.dicts_add_button.setIcon(jpIcon.add)
         self.dicts_add_button.clicked.connect(self.add_dict)
@@ -673,13 +673,12 @@ class prefDialog(QDialog):
         for d in cfg['dicts']:
             item = QTreeWidgetItem([d[1], d[0]])
             self.dict_list.addTopLevelItem(item)
-            self.dict_list.setCurrentItem(item)
         hint = self.dict_list.sizeHintForColumn(0)
         mwid = int(self.width() * 2 / 3)
         self.dict_list.setColumnWidth(0, mwid)
         self.dict_list.resizeColumnToContents(1)
 
-    def sel_chg(self):
+    def dict_list_sel_chg(self):
         en = len(self.dict_list.selectedItems()) > 0
         self.dicts_remove_button.setEnabled(en)
         self.dicts_up_button.setEnabled(en)
@@ -718,16 +717,22 @@ class prefDialog(QDialog):
         self.font_sample.setHtml(''.join(html))
 
     def apply(self):
-        font = QFont()
-        font.fromString(self.nfont_edit.text())
-        f = font.toString().split(',')
-        cfg['nfont'] = f[0]
-        cfg['nfont_sz'] = int(f[1])
-        font.fromString(self.lfont_edit.text())
-        f = font.toString().split(',')
-        cfg['lfont'] = f[0]
-        cfg['lfont_sz'] = int(f[1])
-        cfg['hl_col'] = self.color_edit.text()
+        def font_parse(s):
+            font = QFont()
+            font.fromString(s)
+            f = font.toString().split(',')
+            try:
+                f[1] = round(float(f[1]), 1)
+            except:
+                f[1] = 12.0
+            return f[0], f[1]
+        cfg['nfont'], cfg['nfont_sz'] = font_parse(self.nfont_edit.text())
+        self.nfont_edit.setText('%s, %.1f' % (cfg['nfont'], cfg['nfont_sz']))
+        cfg['lfont'], cfg['lfont_sz'] = font_parse(self.lfont_edit.text())
+        self.lfont_edit.setText('%s, %.1f' % (cfg['lfont'], cfg['lfont_sz']))
+        color = QColor(self.color_edit.text())
+        cfg['hl_col'] = color.name()
+        self.color_edit.setText(color.name())
         self.update_font_sample()
         d = []
         it = QTreeWidgetItemIterator(self.dict_list)
@@ -745,7 +750,7 @@ class prefDialog(QDialog):
         super().accept()
 
     def add_dict(self):
-        dlg = dictDialog(self, title='Add Dictionary')
+        dlg = dictDialog(self, title='Add Dictionary File')
         res = dlg.exec_()
         if res == QDialog.Accepted and dlg.name and dlg.path:
             item = QTreeWidgetItem([dlg.path, dlg.name])
@@ -765,7 +770,7 @@ class prefDialog(QDialog):
         sel = self.dict_list.selectedItems()[0]
         path = sel.data(0, Qt.DisplayRole)
         name = sel.data(1, Qt.DisplayRole)
-        dlg = dictDialog(self, title='Edit Dictionary', name=name, path=path)
+        dlg = dictDialog(self, title='Dictionary File Properties', name=name, path=path)
         res = dlg.exec_()
         if res == QDialog.Accepted and dlg.name and dlg.path:
             sel.setData(0, Qt.DisplayRole, dlg.path)
@@ -854,17 +859,25 @@ class jpMainWindow(QMainWindow):
         japopt_group.setLayout(japopt_layout)
         # english search options
         self.engopt_group = zQGroupBox('English Search Options')
-        self.engopt_group.setEnabled(not cfg['romaji'])
         self.engopt_expr = QRadioButton('Wh&ole Expressions')
         self.engopt_expr.setChecked(cfg['eng_opt'][0])
         self.engopt_word = QRadioButton('&Whole Words')
         self.engopt_word.setChecked(cfg['eng_opt'][1])
         self.engopt_any = QRadioButton('Any &Matches')
         self.engopt_any.setChecked(cfg['eng_opt'][2])
+        def _english_toggle():
+            en = not self.search_romaji.isChecked()
+            self.engopt_expr.setEnabled(en)
+            self.engopt_word.setEnabled(en)
+            self.engopt_any.setEnabled(en)
+        self.search_romaji = QCheckBox('&Romaji')
+        self.search_romaji.toggled.connect(_english_toggle)
+        self.search_romaji.setChecked(cfg['romaji'])
         engopt_layout = zQVBoxLayout()
         engopt_layout.addWidget(self.engopt_expr)
         engopt_layout.addWidget(self.engopt_word)
         engopt_layout.addWidget(self.engopt_any)
+        engopt_layout.addWidget(self.search_romaji)
         engopt_layout.addStretch()
         self.engopt_group.setLayout(engopt_layout)
         # general search options
@@ -919,8 +932,8 @@ class jpMainWindow(QMainWindow):
         self.search_box = QComboBox()
         for h in cfg['history']:
             self.search_box.insertItem(self.search_box.count(), h)
+        self.search_box.setCurrentIndex(-1)
         self.search_box.setEditable(True)
-        self.search_box.lineEdit().setText('')
         self.search_box.setMinimumWidth(400)
         self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.search_box_edit_style = self.search_box.lineEdit().styleSheet()
@@ -935,14 +948,10 @@ class jpMainWindow(QMainWindow):
         clear_button.setIcon(jpIcon.clear)
         clear_button.clicked.connect(self.search_clear)
         QShortcut('Alt+C', self.search_box).activated.connect(self.search_clear)
-        self.search_romaji = QCheckBox('&Romaji')
-        self.search_romaji.toggled.connect(self.engopt_group.setDisabled)
-        self.search_romaji.setChecked(cfg['romaji'])
         search_layout = zQHBoxLayout()
         search_layout.addWidget(self.search_box, 100)
         search_layout.addWidget(search_button, 5)
         search_layout.addWidget(clear_button, 1)
-        search_layout.addWidget(self.search_romaji)
         search_group.setLayout(search_layout)
         # result area
         self.result_group = zQGroupBox('Search results:')
@@ -1015,6 +1024,7 @@ class jpMainWindow(QMainWindow):
 
     def search_clear(self):
         self.search_box.setFocus()
+        self.search_box.setCurrentIndex(-1)
         self.search_box.lineEdit().setText("")
 
     def _search_apply_options(self, term, mode):
@@ -1121,16 +1131,16 @@ class jpMainWindow(QMainWindow):
                     break;
         # report results
         rlen = len(result)
-        self.result_group.setTitle('Search results: %d' % rlen)
+        self.result_group.setTitle('Search results: %d%s' % (rlen, '+' if rlen>=limit else ''))
         QApplication.processEvents()
         # format result
         if rlen > cfg['hardlimit'] / 2:
             self.result_pane.setPlainText('Formatting...')
             QApplication.processEvents()
         re_term = re.compile(term, re.IGNORECASE)
-        nfmt = '<div style="font-family: %s; font-size: %dpt">' % (cfg['nfont'], cfg['nfont_sz'])
-        lfmt = '<span style="font-family: %s; font-size: %dpt;">' % (cfg['lfont'], cfg['lfont_sz'])
-        hlfmt = '<span style="color: %s;">' % cfg['hl_col']
+        nfmt = '<div style="font-family:%s;font-size:%.1fpt">' % (cfg['nfont'], cfg['nfont_sz'])
+        lfmt = '<span style="font-family:%s;font-size:%.1fpt;">' % (cfg['lfont'], cfg['lfont_sz'])
+        hlfmt = '<span style="color:%s;">' % cfg['hl_col']
         html = [''] * (rlen + 2)
         html[0] = nfmt
         def hl_repl(match, org=None):
