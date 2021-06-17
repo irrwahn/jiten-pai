@@ -16,7 +16,7 @@ Phase II
 [x] Romaji input
 [ ] app icon, "About" dialog
 [ ] README
-[ ] verb de-inflection?
+[x] verb de-inflection
 
 
 Phase III

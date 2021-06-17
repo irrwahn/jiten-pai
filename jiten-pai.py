@@ -13,9 +13,11 @@ See `LICENSE` file for more information.
 """
 
 
-_JITENPAI_VERSION = '0.0.6'
+_JITENPAI_VERSION = '0.0.7'
 _JITENPAI_NAME = 'Jiten-pai'
+_JITENPAI_DIR = 'jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'
+_JITENPAI_VCONJ = 'vconj.utf8'
 
 _JITENPAI_HELP = 'todo'
 
@@ -80,11 +82,27 @@ cfg = {
     'lfont': 'IPAPMincho',
     'lfont_sz': 24.0,
     'hl_col': 'blue',
+    'deinflect': False,
     'max_hist': 12,
     'history': [],
     # run-time only, not saved:
     'cfgfile': None,
 }
+
+def _get_cfile_path(fname, mode=os.R_OK):
+    cdirs = []
+    if os.environ.get('APPDATA'):
+        cdirs.append(os.environ.get('APPDATA'))
+    if os.environ.get('XDG_CONFIG_HOME'):
+        cdirs.append(os.environ.get('XDG_CONFIG_HOME'))
+    if os.environ.get('HOME'):
+        cdirs.append(os.path.join(os.environ.get('HOME'), '.config'))
+    cdirs.append(os.path.dirname(os.path.realpath(__file__)))
+    for d in cdirs:
+        path = os.path.join(d, fname)
+        if os.access(path, mode):
+            return path
+    return fname
 
 def _save_cfg():
     s_cfg = cfg.copy()
@@ -96,44 +114,81 @@ def _save_cfg():
                 return
         except Exception as e:
             eprint(cfg['cfgfile'], str(e))
-    cdirs = []
-    if os.environ.get('APPDATA'):
-        cdirs.append(os.environ.get('APPDATA'))
-    if os.environ.get('XDG_CONFIG_HOME'):
-        cdirs.append(os.environ.get('XDG_CONFIG_HOME'))
-    if os.environ.get('HOME'):
-        cdirs.append(os.path.join(os.environ.get('HOME'), '.config'))
-        cdirs.append(os.environ.get('HOME'))
-    cdirs.append(os.path.dirname(os.path.realpath(__file__)))
-    for d in cdirs:
-        cf = os.path.join(d, _JITENPAI_CFG)
-        try:
-            with open(cf, 'w') as cfgfile:
-                json.dump(s_cfg, cfgfile, indent=2)
-                return
-        except Exception as e:
-            eprint(cf, str(e))
+    cfgdir = _get_cfile_path('', mode=os.R_OK | os.W_OK | os.X_OK)
+    cfname = os.path.join(cfgdir, _JITENPAI_CFG)
+    try:
+        with open(cfname, 'w') as cfgfile:
+            json.dump(s_cfg, cfgfile, indent=2)
+            cfg['cfgfile'] = cfname
+            return
+    except Exception as e:
+        eprint(cfname, str(e))
 
 def _load_cfg():
+    cfname = _get_cfile_path('', mode=os.R_OK)
+    cfname = os.path.join(cfname, _JITENPAI_CFG)
+    try:
+        with open(cfname, 'r') as cfgfile:
+            cfg.update(json.load(cfgfile))
+            cfg['cfgfile'] = cfname
+            return
+    except Exception as e:
+        eprint(cfname, str(e))
+        pass
+
+
+############################################################
+# verb de-inflection
+
+_vc_type = dict()
+_vc_deinf = []
+
+def _get_dfile_path(fname, mode=os.R_OK):
     cdirs = []
     if os.environ.get('APPDATA'):
         cdirs.append(os.environ.get('APPDATA'))
-    if os.environ.get('XDG_CONFIG_HOME'):
-        cdirs.append(os.environ.get('XDG_CONFIG_HOME'))
     if os.environ.get('HOME'):
-        cdirs.append(os.path.join(os.environ.get('HOME'), '.config'))
-        cdirs.append(os.environ.get('HOME'))
+        cdirs.append(os.path.join(os.environ.get('HOME'), '.local/share'))
+    cdirs.append('/usr/local/share')
+    cdirs.append('/usr/share')
     cdirs.append(os.path.dirname(os.path.realpath(__file__)))
     for d in cdirs:
-        cf = os.path.join(d, _JITENPAI_CFG)
-        try:
-            with open(cf, 'r') as cfgfile:
-                cfg.update(json.load(cfgfile))
-                cfg['cfgfile'] = cf
-                return
-        except Exception as e:
-            eprint(cf, str(e))
-            pass
+        path = os.path.join(d, fname)
+        if os.access(path, mode):
+            return path
+    return fname
+
+def _vc_load():
+    vcname = _JITENPAI_VCONJ
+    if not os.access(vcname, os.R_OK):
+        vcname = _get_dfile_path(os.path.join(_JITENPAI_DIR, _JITENPAI_VCONJ), mode=os.R_OK)
+    try:
+        with open(vcname) as vcfile:
+            re_type = re.compile(r'^(\d+)\s+(.+)$')
+            re_deinf = re.compile(r'^\s*([^#\s]+)\s+(\S+)\s+(\d+)\s*$')
+            for line in vcfile:
+                match = re_type.match(line)
+                if match:
+                    _vc_type[match.group(1)] = match.group(2)
+                    continue
+                match = re_deinf.match(line)
+                if match:
+                    r = re.compile('%s$' % match.group(1))
+                    _vc_deinf.append([r, match.group(1), match.group(2), match.group(3)])
+                    continue
+    except Exception as e:
+        eprint(vcname, str(e))
+        pass
+
+def _vc_deinflect(verb):
+    inf = verb
+    blurb = ''
+    for p in _vc_deinf:
+        v = p[0].sub(p[2], verb)
+        if v != verb:
+            inf = v
+            blurb = '%s %s → %s' % (_vc_type[p[3]], p[1], p[2])
+    return inf, blurb
 
 
 ############################################################
@@ -606,7 +661,14 @@ class prefDialog(QDialog):
         fonts_layout.addRow(self.lfont_button, self.lfont_edit)
         fonts_layout.addRow(self.color_button, self.color_edit)
         fonts_layout.addRow('Sample', self.font_sample)
-        fonts_group.setLayout(fonts_layout)
+        # search options
+        search_group = zQGroupBox('Search Options')
+        self.search_deinflect = QCheckBox('&Verb Deinflection (experimental)')
+        self.search_deinflect.setChecked(cfg['deinflect'])
+        self.search_deinflect.setEnabled(len(_vc_deinf) > 0)
+        search_layout = zQVBoxLayout(search_group)
+        search_layout.addWidget(self.search_deinflect)
+        search_layout.addSpacing(10)
         # dicts
         dicts_group = zQGroupBox('Dictionaries')
         self.dict_list = QTreeWidget()
@@ -667,6 +729,7 @@ class prefDialog(QDialog):
         # dialog layout
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(fonts_group)
+        main_layout.addWidget(search_group)
         main_layout.addWidget(dicts_group)
         main_layout.addStretch()
         main_layout.addLayout(button_layout)
@@ -735,6 +798,7 @@ class prefDialog(QDialog):
         cfg['hl_col'] = color.name()
         self.color_edit.setText(color.name())
         self.update_font_sample()
+        cfg['deinflect'] = self.search_deinflect.isChecked()
         d = []
         it = QTreeWidgetItemIterator(self.dict_list)
         while it.value():
@@ -1066,6 +1130,37 @@ class jpMainWindow(QMainWindow):
                 return True
         return False
 
+    def _search_deinflected(self, term, mode, limit):
+        inf, blurb = _vc_deinflect(term)
+        if not blurb:
+            return [], inf, ''
+        result = []
+        while 0 == len(result):
+            # apply search options
+            s_term = self._search_apply_options(inf, mode)
+            if s_term[-5:] != '(;|$)':
+                s_term += '(;|$)'
+            # perform lookup
+            if self.genopt_dict.isChecked():
+                dic = self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())
+                result = dict_lookup(dic, s_term, mode, limit)
+                self.result_group.setTitle(self.result_group.title() + '.')
+                QApplication.processEvents()
+            else:
+                for d in cfg['dicts']:
+                    r = dict_lookup(d[1], s_term, mode, limit)
+                    result.extend(r)
+                    limit -= len(r)
+                    if limit == 0:
+                        limit = -1
+                    self.result_group.setTitle(self.result_group.title() + '.')
+                    QApplication.processEvents()
+            # relax search options
+            if len(result) == 0 and self.genopt_auto.isChecked():
+                if not self._search_relax(mode):
+                    break;
+        return result, inf, blurb
+
     def search(self):
         self.search_box.setFocus()
         # validate input
@@ -1093,6 +1188,16 @@ class jpMainWindow(QMainWindow):
         self.result_group.setTitle('Search results: ...')
         QApplication.processEvents()
         mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
+        # search deinflected verb
+        v_result = []
+        v_inf = ''
+        v_blurb = ''
+        if cfg['deinflect'] and mode == ScanMode.JAP:
+            v_result, v_inf, v_blurb = self._search_deinflected(term, mode, limit)
+            for r in v_result:
+                r.append(1)
+            limit -= len(v_result)
+        # normal search
         result = []
         while 0 == len(result):
             # apply search options
@@ -1117,6 +1222,7 @@ class jpMainWindow(QMainWindow):
                 if not self._search_relax(mode):
                     break;
         # report results
+        result.extend(v_result)
         rlen = len(result)
         self.result_group.setTitle('Search results: %d%s' % (rlen, '+' if rlen>=limit else ''))
         QApplication.processEvents()
@@ -1124,6 +1230,9 @@ class jpMainWindow(QMainWindow):
         if rlen > cfg['hardlimit'] / 2:
             self.result_pane.setPlainText('Formatting...')
             QApplication.processEvents()
+        if v_blurb:
+            verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s:<br>' % v_blurb
+            re_inf = re.compile(v_inf, re.IGNORECASE)
         re_term = re.compile(term, re.IGNORECASE)
         re_entity = re.compile(r'EntL\d+X?; *$', re.IGNORECASE)
         re_mark = re.compile(r'(\(.+?\))')
@@ -1145,12 +1254,20 @@ class jpMainWindow(QMainWindow):
             res[2] = re_entity.sub('', res[2])
             # highlight matches
             if mode == ScanMode.JAP:
-                res[0] = re_term.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
-                res[1] = re_term.sub(hl_repl, res[1])
+                if len(res) > 3:
+                    res[0] = re_inf.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
+                    res[1] = re_inf.sub(hl_repl, res[1])
+                else:
+                    res[0] = re_term.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
+                    res[1] = re_term.sub(hl_repl, res[1])
             else:
                 res[2] = re_term.sub(hl_repl, res[2])
             # construct display line
-            html[idx+1] = '<p>%s%s</span>%s %s</p>\n' % (lfmt, res[0], (' (%s)'%res[1] if len(res[1]) > 0 else ''), res[2])
+            html[idx+1] = '<p>%s%s%s</span>%s %s</p>\n' \
+                % ((verb_message if len(res)>3 else ''), \
+                   lfmt, res[0],\
+                   (' (%s)'%res[1] if len(res[1]) > 0 else ''),\
+                   res[2])
         html[rlen + 1] = '</div>'
         self.result_pane.setHtml(''.join(html))
         self.result_pane.setEnabled(True)
@@ -1199,6 +1316,7 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
 
 def main():
     _load_cfg()
+    _vc_load()
     # set up window
     os.environ['QT_LOGGING_RULES'] = 'qt5ct.debug=false'
     app = QApplication(sys.argv)
