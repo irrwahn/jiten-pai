@@ -1033,30 +1033,17 @@ class jpMainWindow(QMainWindow):
         if mode == ScanMode.JAP:
             s_term = kata2hira(s_term)
             if self.japopt_exact.isChecked():
-                if s_term[0] != '^':
-                    s_term = '^' + s_term
-                if s_term[-1] != '$':
-                    s_term = s_term + '$'
+                s_term = r'(^|;)' + s_term
+                s_term = s_term + r'(;|$)'
             elif self.japopt_start.isChecked():
-                if s_term[0] != '^':
-                    s_term = '^' + s_term
-                if s_term[-1] == '$':
-                    s_term = s_term[:-1]
+                s_term = r'(^|;)' + s_term
             elif self.japopt_end.isChecked():
-                if s_term[0] == '^':
-                    s_term = s_term[1:]
-                if s_term[-1] != '$':
-                    s_term = s_term + '$'
-            elif self.japopt_any.isChecked():
-                if s_term[0] == '^':
-                    s_term = s_term[1:]
-                if s_term[-1] == '$':
-                    s_term = s_term[:-1]
+                s_term = s_term + r'(;|$)'
         else:
             if self.engopt_expr.isChecked():
-                s_term = '\W( to)? ' + s_term + '(\s+\(.*\))?;'
+                s_term = r'\W( to)? ' + s_term + r'(\s+\(.*\))?;'
             elif self.engopt_word.isChecked():
-                s_term = '\W' + s_term + '\W'
+                s_term = r'\b' + s_term + r'\b'
         return s_term
 
     def _search_relax(self, mode):
