@@ -1077,10 +1077,6 @@ class jpMainWindow(QMainWindow):
             return
         self.search_box.lineEdit().setText(term)
         self.result_pane.setEnabled(False)
-        # convert Romaji
-        if self.search_romaji.isChecked():
-            term = alphabet2kana(term)
-            self.search_box.lineEdit().setText(term)
         # save to history
         for i in range(self.search_box.count()):
             if self.search_box.itemText(i) == term:
@@ -1088,6 +1084,9 @@ class jpMainWindow(QMainWindow):
                 break
         self.search_box.insertItem(0, term)
         self.search_box.setCurrentIndex(0)
+        # convert Romaji
+        if self.search_romaji.isChecked():
+            term = alphabet2kana(term)
         # result limiting
         limit = self.genopt_limit.value() if self.genopt_limit.isEnabled() else cfg['hardlimit']
         # search
