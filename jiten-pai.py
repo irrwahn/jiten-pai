@@ -1126,6 +1126,8 @@ class jpMainWindow(QMainWindow):
             self.result_pane.setPlainText('Formatting...')
             QApplication.processEvents()
         re_term = re.compile(term, re.IGNORECASE)
+        re_entity = re.compile(r'EntL\d+X?; *$', re.IGNORECASE)
+        re_mark = re.compile(r'(\(.+?\))')
         nfmt = '<div style="font-family:%s;font-size:%.1fpt">' % (cfg['nfont'], cfg['nfont_sz'])
         lfmt = '<span style="font-family:%s;font-size:%.1fpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         hlfmt = '<span style="color:%s;">' % cfg['hl_col']
@@ -1135,6 +1137,13 @@ class jpMainWindow(QMainWindow):
             grp = match.group(0) if org is None else org[match.span()[0]:match.span()[1]]
             return '%s%s</span>' % (hlfmt, grp)
         for idx, res in enumerate(result):
+            # render edict2 priority markers in small font (headwords only)
+            res[0] = re_mark.sub(r'<small>\1</small>', res[0])
+            # line break edict2 multi-headword entries
+            res[0] = res[0].replace(';', '<br>')
+            # for now just drop the edict2 entry number part,
+            # in future this could be used to e.g. link somewhere relevant
+            res[2] = re_entity.sub('', res[2])
             # highlight matches
             if mode == ScanMode.JAP:
                 res[0] = re_term.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
@@ -1142,7 +1151,7 @@ class jpMainWindow(QMainWindow):
             else:
                 res[2] = re_term.sub(hl_repl, res[2])
             # construct display line
-            html[idx+1] = '%s%s</span>%s %s<br>\n' % (lfmt, res[0], (' (%s)'%res[1] if len(res[1]) > 0 else ''), res[2])
+            html[idx+1] = '<p>%s%s</span>%s %s</p>\n' % (lfmt, res[0], (' (%s)'%res[1] if len(res[1]) > 0 else ''), res[2])
         html[rlen + 1] = '</div>'
         self.result_pane.setHtml(''.join(html))
         self.result_pane.setEnabled(True)
