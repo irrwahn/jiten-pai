@@ -1069,7 +1069,7 @@ class jpMainWindow(QMainWindow):
             self.genopt_dictsel.clear()
             for d in cfg['dicts']:
                 self.genopt_dictsel.addItem(d[0], d[1])
-            if idx >= self.genopt_dictsel.count():
+            if idx >= self.genopt_dictsel.count() or idx < 0:
                 idx = 0
             self.genopt_dictsel.setCurrentIndex(idx)
             self.search()
