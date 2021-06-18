@@ -134,7 +134,6 @@ def _load_cfg():
             return
     except Exception as e:
         eprint('_load_cfg:', cfname, str(e))
-        pass
 
 
 ############################################################
@@ -178,7 +177,6 @@ def _vc_load():
                     continue
     except Exception as e:
         eprint('_vc_load:', vcname, str(e))
-        pass
 
 def _vc_deinflect(verb):
     inf = verb
