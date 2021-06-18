@@ -113,7 +113,7 @@ def _save_cfg():
                 json.dump(s_cfg, cfgfile, indent=2)
                 return
         except Exception as e:
-            eprint(cfg['cfgfile'], str(e))
+            eprint('_save_cfg:', cfg['cfgfile'], str(e))
     cfgdir = _get_cfile_path('', mode=os.R_OK | os.W_OK | os.X_OK)
     cfname = os.path.join(cfgdir, _JITENPAI_CFG)
     try:
@@ -122,7 +122,7 @@ def _save_cfg():
             cfg['cfgfile'] = cfname
             return
     except Exception as e:
-        eprint(cfname, str(e))
+        eprint('_save_cfg:', cfname, str(e))
 
 def _load_cfg():
     cfname = _get_cfile_path('', mode=os.R_OK)
@@ -133,7 +133,7 @@ def _load_cfg():
             cfg['cfgfile'] = cfname
             return
     except Exception as e:
-        eprint(cfname, str(e))
+        eprint('_load_cfg:', cfname, str(e))
         pass
 
 
@@ -177,7 +177,7 @@ def _vc_load():
                     _vc_deinf.append([r, match.group(1), match.group(2), match.group(3)])
                     continue
     except Exception as e:
-        eprint(vcname, str(e))
+        eprint('_vc_load:', vcname, str(e))
         pass
 
 def _vc_deinflect(verb):
@@ -1307,7 +1307,7 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
                     result.append([term, hira, trans])
                     cnt += 1
     except Exception as e:
-        eprint(dict_fname, str(e))
+        eprint('lookup:', dict_fname, str(e))
     return result
 
 
