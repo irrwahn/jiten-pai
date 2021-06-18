@@ -141,6 +141,7 @@ def _load_cfg():
 
 _vc_type = dict()
 _vc_deinf = []
+_vc_loaded = False
 
 def _get_dfile_path(fname, mode=os.R_OK):
     cdirs = []
@@ -158,6 +159,7 @@ def _get_dfile_path(fname, mode=os.R_OK):
     return fname
 
 def _vc_load():
+    global _vc_loaded
     vcname = _JITENPAI_VCONJ
     if not os.access(vcname, os.R_OK):
         vcname = _get_dfile_path(os.path.join(_JITENPAI_DIR, _JITENPAI_VCONJ), mode=os.R_OK)
@@ -175,6 +177,7 @@ def _vc_load():
                     r = re.compile('%s$' % match.group(1))
                     _vc_deinf.append([r, match.group(1), match.group(2), match.group(3)])
                     continue
+        _vc_loaded = len(_vc_deinf) > 0
     except Exception as e:
         eprint('_vc_load:', vcname, str(e))
 
@@ -663,7 +666,7 @@ class prefDialog(QDialog):
         search_group = zQGroupBox('Search Options')
         self.search_deinflect = QCheckBox('&Verb Deinflection (experimental)')
         self.search_deinflect.setChecked(cfg['deinflect'])
-        self.search_deinflect.setEnabled(len(_vc_deinf) > 0)
+        self.search_deinflect.setEnabled(_vc_loaded)
         search_layout = zQVBoxLayout(search_group)
         search_layout.addWidget(self.search_deinflect)
         search_layout.addSpacing(10)
@@ -1129,35 +1132,29 @@ class jpMainWindow(QMainWindow):
                 return True
         return False
 
-    def _search_deinflected(self, term, mode, limit):
+    def _search_show_progress(self):
+        self.result_group.setTitle(self.result_group.title() + '.')
+        QApplication.processEvents()
+
+    def _search_deinflected(self, dics, term, mode, limit):
         inf, blurb = _vc_deinflect(term)
         if not blurb:
-            return [], inf, ''
+            return [], inf, blurb
         result = []
-        while 0 == len(result):
-            # apply search options
-            s_term = self._search_apply_options(inf, mode)
-            if s_term[-5:] != '(;|$)':
-                s_term += '(;|$)'
-            # perform lookup
-            if self.genopt_dict.isChecked():
-                dic = self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())
-                result = dict_lookup(dic, s_term, mode, limit)
-                self.result_group.setTitle(self.result_group.title() + '.')
-                QApplication.processEvents()
-            else:
-                for d in cfg['dicts']:
-                    r = dict_lookup(d[1], s_term, mode, limit)
-                    result.extend(r)
-                    limit -= len(r)
-                    if limit == 0:
-                        limit = -1
-                    self.result_group.setTitle(self.result_group.title() + '.')
-                    QApplication.processEvents()
-            # relax search options
-            if len(result) == 0 and self.genopt_auto.isChecked():
-                if not self._search_relax(mode):
-                    break;
+        # apply search options
+        s_term = self._search_apply_options(inf, mode)
+        if s_term[-5:] != '(;|$)':
+            s_term += '(;|$)'
+        # perform lookup
+        for d in dics:
+            r = dict_lookup(d, s_term, mode, limit)
+            self._search_show_progress()
+            result.extend(r)
+            limit -= len(r)
+            if limit <= 0:
+                break
+        for r in result:
+            r.append(1)
         return result, inf, blurb
 
     def search(self):
@@ -1187,41 +1184,37 @@ class jpMainWindow(QMainWindow):
         self.result_group.setTitle('Search results: ...')
         QApplication.processEvents()
         mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
+        if self.genopt_dict.isChecked():
+            dics = [self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())]
+        else:
+            dics = [x[1] for x in cfg['dicts']]
+        result = []
         # search deinflected verb
-        v_result = []
         v_inf = ''
         v_blurb = ''
-        if cfg['deinflect'] and mode == ScanMode.JAP:
-            v_result, v_inf, v_blurb = self._search_deinflected(term, mode, limit)
-            for r in v_result:
-                r.append(1)
-            limit -= len(v_result)
+        if cfg['deinflect'] and mode == ScanMode.JAP and _vc_loaded:
+            result, v_inf, v_blurb = self._search_deinflected(dics, term, mode, limit)
+            limit -= len(result)
         # normal search
-        result = []
-        while 0 == len(result):
+        rlen = len(result)
+        while len(result) == rlen and limit > 0:
             # apply search options
             s_term = self._search_apply_options(term, mode)
             # perform lookup
-            if self.genopt_dict.isChecked():
-                dic = self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())
-                result = dict_lookup(dic, s_term, mode, limit)
-                self.result_group.setTitle(self.result_group.title() + '.')
-                QApplication.processEvents()
-            else:
-                for d in cfg['dicts']:
-                    r = dict_lookup(d[1], s_term, mode, limit)
-                    result.extend(r)
-                    limit -= len(r)
-                    if limit == 0:
-                        limit = -1
-                    self.result_group.setTitle(self.result_group.title() + '.')
-                    QApplication.processEvents()
+            for d in dics:
+                r = dict_lookup(d, s_term, mode, limit)
+                self._search_show_progress()
+                result.extend(r)
+                limit -= len(r)
+                if limit <= 0:
+                    break
             # relax search options
-            if len(result) == 0 and self.genopt_auto.isChecked():
+            if len(result) == rlen and self.genopt_auto.isChecked():
                 if not self._search_relax(mode):
                     break;
+            else:
+                break
         # report results
-        result.extend(v_result)
         rlen = len(result)
         self.result_group.setTitle('Search results: %d%s' % (rlen, '+' if rlen>=limit else ''))
         QApplication.processEvents()
@@ -1230,7 +1223,7 @@ class jpMainWindow(QMainWindow):
             self.result_pane.setPlainText('Formatting...')
             QApplication.processEvents()
         if v_blurb:
-            verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s:<br>' % v_blurb
+            verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s<br>' % v_blurb
             re_inf = re.compile(v_inf, re.IGNORECASE)
         re_term = re.compile(term, re.IGNORECASE)
         re_entity = re.compile(r'EntL\d+X?; *$', re.IGNORECASE)
