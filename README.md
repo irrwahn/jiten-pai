@@ -44,6 +44,10 @@ particular indicate whether a file is actually in EDICT format. In many
 cases a conversion from EUC-JP to UTF-8 will be necessary, as outlined in
 the examples above.
 
+**HINT:** In case the `recode` utility is not available, the included
+transcoding script may be used instead, e.g.:
+> `./eucjp_to_utf8.py enamdict.gz enamdict`
+
 
 ## Notes
 
