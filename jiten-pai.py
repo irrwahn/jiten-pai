@@ -1054,6 +1054,7 @@ class jpMainWindow(QMainWindow):
                           self.engopt_any.isChecked()]
         cfg['dict_idx'] = self.genopt_dictsel.currentIndex()
         cfg['dict_all'] = self.genopt_alldict.isChecked()
+        cfg['auto_adj'] = self.genopt_auto.isChecked()
         cfg['limit'] = self.genopt_limit.value()
         cfg['do_limit'] = self.genopt_dolimit.isChecked()
         cfg['romaji'] = self.search_romaji.isChecked()
