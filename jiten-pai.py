@@ -1178,6 +1178,8 @@ class jpMainWindow(QMainWindow):
         # convert Romaji
         if self.search_romaji.isChecked():
             term = alphabet2kana(term)
+        # convert Katakana to Hiragana
+        term = kata2hira(term)
         # result limiting
         limit = self.genopt_limit.value() if self.genopt_limit.isEnabled() else cfg['hardlimit']
         # search
