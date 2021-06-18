@@ -1279,8 +1279,6 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
         with open(dict_fname) as dict_file:
             re_pattern = re.compile(pattern, re.IGNORECASE)
             for line in dict_file:
-                if limit and cnt >= limit:
-                    break
                 try:
                     # manually splitting the line is actually faster than regex
                     p1 = line.split('[', 1)
@@ -1293,11 +1291,14 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
                     hira = p2[0].strip()
                     trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
                 except:
+                    eprint('lookup:', line, ':', str(e))
                     continue
-                if (mode == ScanMode.JAP and (re_pattern.search(kata2hira(term)) or re_pattern.search(hira))) \
+                if (mode == ScanMode.JAP and (re_pattern.search(hira) or re_pattern.search(kata2hira(term)))) \
                 or (mode == ScanMode.ENG and re_pattern.search(trans)):
                     result.append([term, hira, trans])
                     cnt += 1
+                    if limit and cnt >= limit:
+                        break
     except Exception as e:
         eprint('lookup:', dict_fname, str(e))
     return result
