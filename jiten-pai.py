@@ -1137,13 +1137,24 @@ class jpMainWindow(QMainWindow):
         self.result_group.setTitle(self.result_group.title() + '.')
         QApplication.processEvents()
 
+    def _search_show_dict_error(self, dname):
+        mbox = QMessageBox(self)
+        mbox.setWindowTitle('Dictionary Error')
+        mbox.setIcon(QMessageBox.Critical)
+        mbox.setStandardButtons(QMessageBox.Ok)
+        mbox.setText("Dictionary '%s' configured incorrectly!" % dname)
+        mbox.exec_()
+        mbox.hide()
+        QApplication.processEvents()
+
     def _search_deinflected(self, inflist, dic, mode, limit):
         re_isnoun = re.compile(r'\(n\)')
         result = []
+        ok = True
         for inf in inflist:
             s_term = r'(^|;)' + inf[0] + self.TERM_END
             # perform lookup
-            res = dict_lookup(dic, s_term, mode, limit)
+            res, ok = dict_lookup(dic, s_term, mode, limit)
             for r in list(res):
                 # drop nouns
                 if re_isnoun.search(r[2]):
@@ -1152,9 +1163,9 @@ class jpMainWindow(QMainWindow):
                 r.append(inf)
                 result.append(r)
                 limit -= 1
-            if limit <= 0:
+            if limit <= 0 or not ok:
                 break
-        return result
+        return result, ok
 
     def search(self):
         self.search_box.setFocus()
@@ -1186,7 +1197,7 @@ class jpMainWindow(QMainWindow):
         QApplication.processEvents()
         mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
         if self.genopt_dict.isChecked():
-            dics = [['', self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())]]
+            dics = [[self.genopt_dictsel.currentText(), self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())]]
         else:
             dics = cfg['dicts']
         result = []
@@ -1196,24 +1207,30 @@ class jpMainWindow(QMainWindow):
             inflist = _vc_deinflect(term)
         # perform lookup
         for d in dics:
+            ok = True
             if len(dics) > 1:
                 result.append(['#', d[0]])
             # search de-inflected verbs
             if len(inflist) > 0:
-                r = self._search_deinflected(inflist, d[1], mode, limit)
+                r, ok = self._search_deinflected(inflist, d[1], mode, limit)
                 self._search_show_progress()
                 result.extend(r)
                 limit -= len(r)
                 if limit <= 0:
                     break
+                if not ok:
+                    self._search_show_dict_error(d[0])
+                    continue
             # 'normal' search
             rlen = len(result)
-            while True:
+            while ok:
                 s_term = self._search_apply_options(term, mode)
-                r = dict_lookup(d[1], s_term, mode, limit)
+                r, ok = dict_lookup(d[1], s_term, mode, limit)
                 self._search_show_progress()
                 result.extend(r)
                 limit -= len(r)
+                if not ok:
+                    self._search_show_dict_error(d[0])
                 # relax search options
                 if limit <= 0 or len(result) != rlen \
                    or not self.genopt_auto.isChecked() \
@@ -1285,6 +1302,7 @@ class jpMainWindow(QMainWindow):
 def dict_lookup(dict_fname, pattern, mode, limit=0):
     result = []
     cnt = 0
+    ok = False
     try:
         with open(dict_fname) as dict_file:
             re_pattern = re.compile(pattern, re.IGNORECASE)
@@ -1301,7 +1319,7 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
                     hira = p2[0].strip()
                     trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
                 except:
-                    eprint('lookup:', line, ':', str(e))
+                    eprint('malformed line:', line, ':', str(e))
                     continue
                 if (mode == ScanMode.JAP and (re_pattern.search(hira) or re_pattern.search(kata2hira(term)))) \
                 or (mode == ScanMode.ENG and re_pattern.search(trans)):
@@ -1309,9 +1327,10 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
                     cnt += 1
                     if limit and cnt >= limit:
                         break
+            ok = True
     except Exception as e:
         eprint('lookup:', dict_fname, str(e))
-    return result
+    return result, ok
 
 
 ############################################################
