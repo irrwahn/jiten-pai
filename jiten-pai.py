@@ -1094,17 +1094,18 @@ class jpMainWindow(QMainWindow):
         self.search_box.setCurrentIndex(-1)
         self.search_box.lineEdit().setText("")
 
+    TERM_END = r'(\(.*\))?(;|$)'
     def _search_apply_options(self, term, mode):
         s_term = term
         if mode == ScanMode.JAP:
             s_term = kata2hira(s_term)
             if self.japopt_exact.isChecked():
                 s_term = r'(^|;)' + s_term
-                s_term = s_term + r'(;|$)'
+                s_term = s_term + self.TERM_END
             elif self.japopt_start.isChecked():
                 s_term = r'(^|;)' + s_term
             elif self.japopt_end.isChecked():
-                s_term = s_term + r'(;|$)'
+                s_term = s_term + self.TERM_END
         else:
             if self.engopt_expr.isChecked():
                 s_term = r'\W( to)? ' + s_term + r'(\s+\(.*\))?;'
@@ -1143,8 +1144,8 @@ class jpMainWindow(QMainWindow):
         result = []
         # apply search options
         s_term = self._search_apply_options(inf, mode)
-        if s_term[-5:] != '(;|$)':
-            s_term += '(;|$)'
+        if s_term[-len(self.TERM_END):] != self.TERM_END:
+            s_term += self.TERM_END
         # perform lookup
         for d in dics:
             r = dict_lookup(d, s_term, mode, limit)
