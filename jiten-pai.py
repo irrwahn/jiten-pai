@@ -13,7 +13,7 @@ See `LICENSE` file for more information.
 """
 
 
-_JITENPAI_VERSION = '0.0.8'
+_JITENPAI_VERSION = '0.0.9'
 _JITENPAI_NAME = 'Jiten-pai'
 _JITENPAI_DIR = 'jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'
@@ -39,7 +39,6 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
-
 ############################################################
 # utility functions and classes
 
@@ -49,10 +48,14 @@ def die(rc=0):
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
-def contains_cjk(s):
-    for c in s:
-        if "Lo" == unicodedata.category(c):
-            return True
+def is_kanji(s):
+    return True if re.match("^[\u4e00-\u9FFF]$", s) else False
+
+def has_jap(s):
+    if re.search("[\u3040-\u30ff]", s):  # kana
+        return True
+    if re.search("[\u4e00-\u9FFF]", s): # kanji
+        return True
     return False
 
 class ScanMode(enum.Enum):
@@ -64,6 +67,7 @@ class ScanMode(enum.Enum):
 # configuration
 
 cfg = {
+    'kanjidic': '/usr/share/gjiten/dics/kanjidic',
     'dicts': [
         ['edict', '/usr/share/gjiten/dics/edict'],
         ['enamdict', '/usr/share/gjiten/dics/enamdict'],
@@ -85,6 +89,7 @@ cfg = {
     'deinflect': False,
     'max_hist': 12,
     'history': [],
+
     # run-time only, not saved:
     'cfgfile': None,
 }
@@ -135,6 +140,15 @@ def _load_cfg():
     except Exception as e:
         eprint('_load_cfg:', cfname, str(e))
 
+
+############################################################
+# import kanjidic
+try:
+    from kanjidic import kdMainWindow
+    _got_kd = True
+except Exception as e:
+    eprint('kanjidic.py:', e)
+    _got_kd = False
 
 ############################################################
 # verb de-inflection
@@ -390,6 +404,53 @@ class zQGroupBox(QGroupBox):
             }"""
         )
 
+class zQTextEdit(QTextEdit):
+    kanji = None
+    kanji_click = pyqtSignal(str)
+    _ov_cursor = False
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.kanji = ''
+        self.setMouseTracking(True)
+
+    def _override_cursor(self):
+        if not self._ov_cursor:
+            self._ov_cursor = True
+            app.setOverrideCursor(Qt.WhatsThisCursor)
+
+    def _restore_cursor(self):
+        if self._ov_cursor:
+            self._ov_cursor = False
+            app.restoreOverrideCursor()
+
+    def mouseMoveEvent(self, event):
+        pos = event.pos()
+        pos.setX(pos.x() - 15)
+        old_tcur = self.textCursor()
+        tcur = self.cursorForPosition(pos)
+        self.setTextCursor(tcur)
+        tcur.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor);
+        char = tcur.selectedText()
+        scr = self.verticalScrollBar().value()
+        self.setTextCursor(old_tcur)
+        self.verticalScrollBar().setValue(scr)
+        if is_kanji(char):
+            self.kanji = char
+            self._override_cursor()
+        else:
+            self.kanji = ''
+            self._restore_cursor()
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.kanji and len(self.textCursor().selectedText()) < 1:
+            self.kanji_click.emit(self.kanji)
+
+    def leaveEvent(self, event):
+        self.kanji = ''
+        self._restore_cursor()
+
 
 ############################################################
 # Icons
@@ -633,7 +694,7 @@ class prefDialog(QDialog):
     def init_ui(self):
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowTitle('Preferences')
-        self.resize(600, 600)
+        self.resize(600, 700)
         # fonts
         fonts_group = zQGroupBox('Fonts')
         self.nfont_button = QPushButton('Normal Font')
@@ -670,6 +731,14 @@ class prefDialog(QDialog):
         search_layout = zQVBoxLayout(search_group)
         search_layout.addWidget(self.search_deinflect)
         search_layout.addSpacing(10)
+        # kanjidic options
+        kdic_group = zQGroupBox('Kanji Dictionary')
+        self.kdic_button = QPushButton(cfg['kanjidic'])
+        self.kdic_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.kdic_button.clicked.connect(self.kanji_dict)
+        kdic_layout = zQVBoxLayout(kdic_group)
+        kdic_layout.addWidget(self.kdic_button)
+        kdic_layout.addSpacing(10)
         # dicts
         dicts_group = zQGroupBox('Dictionaries')
         self.dict_list = QTreeWidget()
@@ -731,6 +800,7 @@ class prefDialog(QDialog):
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(fonts_group)
         main_layout.addWidget(search_group)
+        main_layout.addWidget(kdic_group)
         main_layout.addWidget(dicts_group)
         main_layout.addStretch()
         main_layout.addLayout(button_layout)
@@ -800,6 +870,7 @@ class prefDialog(QDialog):
         self.color_edit.setText(color.name())
         self.update_font_sample()
         cfg['deinflect'] = self.search_deinflect.isChecked()
+        cfg['kanjidic'] = self.kdic_button.text()
         d = []
         it = QTreeWidgetItemIterator(self.dict_list)
         while it.value():
@@ -814,6 +885,13 @@ class prefDialog(QDialog):
     def accept(self):
         self.apply()
         super().accept()
+
+    def kanji_dict(self):
+        fn, _ = QFileDialog.getOpenFileName(self, 'Select Kanji Dictionary File',
+                os.path.dirname(self.kdic_button.text()),
+                options=QFileDialog.DontUseNativeDialog)
+        if fn:
+            self.kdic_button.setText(fn)
 
     def add_dict(self):
         dlg = dictDialog(self, title='Add Dictionary File')
@@ -871,6 +949,8 @@ class prefDialog(QDialog):
 # main window class
 
 class jpMainWindow(QMainWindow):
+    kanji_dlg = None
+
     def __init__(self, *args, title='', **kwargs):
         super().__init__(*args, **kwargs)
         self.init_ui(title)
@@ -902,7 +982,10 @@ class jpMainWindow(QMainWindow):
         edit_menu.addSeparator()
         edit_menu.addAction(pref_action)
         tools_menu = menubar.addMenu('&Tools')
-        # TODO: Tools menu
+        if _got_kd:
+            kanjidic_action = QAction('&KanjiDic', self)
+            kanjidic_action.triggered.connect(self.kanjidic)
+            tools_menu.addAction(kanjidic_action)
         help_menu = menubar.addMenu('&Help')
         about_action = QAction('&About', self)
         help_menu.addAction(about_action)
@@ -1021,9 +1104,10 @@ class jpMainWindow(QMainWindow):
         search_group.setLayout(search_layout)
         # result area
         self.result_group = zQGroupBox('Search results:')
-        self.result_pane = QTextEdit()
+        self.result_pane = zQTextEdit()
         self.result_pane.setReadOnly(True)
         self.result_pane.setText('')
+        self.result_pane.kanji_click.connect(self.kanjidic)
         result_layout = zQVBoxLayout()
         result_layout.addWidget(self.result_pane)
         self.result_group.setLayout(result_layout)
@@ -1067,6 +1151,8 @@ class jpMainWindow(QMainWindow):
         dlg = prefDialog(self)
         res = dlg.exec_()
         if res == QDialog.Accepted:
+            if self.kanji_dlg:
+                self.kanji_dlg.init_cfg()
             idx = self.genopt_dictsel.currentIndex()
             self.genopt_dictsel.clear()
             for d in cfg['dicts']:
@@ -1079,6 +1165,14 @@ class jpMainWindow(QMainWindow):
     def about_dlg(self):
         dlg = aboutDialog(self)
         dlg.exec_()
+
+    def kanjidic(self, kanji=''):
+        if not self.kanji_dlg:
+            self.kanji_dlg = kdMainWindow(self)
+        self.kanji_dlg.show_info(kanji)
+        self.kanji_dlg.showNormal()
+        self.kanji_dlg.activateWindow()
+
 
     def search_onedit(self, text):
         try:
@@ -1191,11 +1285,12 @@ class jpMainWindow(QMainWindow):
         # convert Katakana to Hiragana
         term = kata2hira(term)
         # result limiting
-        limit = self.genopt_limit.value() if self.genopt_limit.isEnabled() else cfg['hardlimit']
+        slimit = self.genopt_limit.value() if self.genopt_limit.isEnabled() else cfg['hardlimit']
+        limit = slimit
         # search
         self.result_group.setTitle('Search results: ...')
         QApplication.processEvents()
-        mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
+        mode = ScanMode.JAP if has_jap(term) else ScanMode.ENG
         if self.genopt_dict.isChecked():
             dics = [[self.genopt_dictsel.currentText(), self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())]]
         else:
@@ -1240,7 +1335,7 @@ class jpMainWindow(QMainWindow):
                 break
         # report results
         rlen = len(result)
-        self.result_group.setTitle('Search results: %d%s' % (rlen, '+' if rlen>=limit else ''))
+        self.result_group.setTitle('Search results: %d%s' % (rlen, '+' if rlen>=slimit else ''))
         QApplication.processEvents()
         # format result
         if rlen > cfg['hardlimit'] / 2:
@@ -1337,6 +1432,7 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
 # main function
 
 def main():
+    global app
     _load_cfg()
     _vc_load()
     # set up window
@@ -1349,6 +1445,7 @@ def main():
 
 # run application
 if __name__== "__main__":
+    app = None
     main()
 
 # EOF
