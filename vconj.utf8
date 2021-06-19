@@ -189,7 +189,7 @@ $   this line flags the start of them
 ましょう	る	18
 れば	る	2
 よう	る	3
-て	る	4
+#て	る	4    # 2021-06-19 disabled here, appears in line 44
 た	る	5
 られ	る	20
 させ	る	8

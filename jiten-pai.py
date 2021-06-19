@@ -182,14 +182,14 @@ def _vc_load():
         eprint('_vc_load:', vcname, str(e))
 
 def _vc_deinflect(verb):
-    inf = verb
+    inf = []
     blurb = ''
     for p in _vc_deinf:
         v = p[0].sub(p[2], verb)
         if v != verb:
-            inf = v
             blurb = '%s %s → %s' % (_vc_type[p[3]], p[1], p[2])
-    return inf, blurb
+            inf.append([v, blurb])
+    return inf
 
 
 ############################################################
@@ -1138,25 +1138,26 @@ class jpMainWindow(QMainWindow):
         QApplication.processEvents()
 
     def _search_deinflected(self, dics, term, mode, limit):
-        inf, blurb = _vc_deinflect(term)
-        if not blurb:
-            return [], inf, blurb
+        inflist = _vc_deinflect(term)
+        re_isnoun = re.compile(r'\(n\)')
         result = []
-        # apply search options
-        s_term = self._search_apply_options(inf, mode)
-        if s_term[-len(self.TERM_END):] != self.TERM_END:
-            s_term += self.TERM_END
-        # perform lookup
-        for d in dics:
-            r = dict_lookup(d, s_term, mode, limit)
-            self._search_show_progress()
-            result.extend(r)
-            limit -= len(r)
-            if limit <= 0:
-                break
-        for r in result:
-            r.append(1)
-        return result, inf, blurb
+        for inf in inflist:
+            s_term = r'(^|;)' + inf[0] + self.TERM_END
+            # perform lookup
+            for d in dics:
+                res = dict_lookup(d, s_term, mode, limit)
+                for r in list(res):
+                    # drop nouns
+                    if re_isnoun.search(r[2]):
+                        continue
+                    # keep the rest, append inflection info
+                    r.append(inf)
+                    result.append(r)
+                    limit -= 1
+                self._search_show_progress()
+                if limit <= 0:
+                    break
+        return result
 
     def search(self):
         self.search_box.setFocus()
@@ -1193,10 +1194,8 @@ class jpMainWindow(QMainWindow):
             dics = [x[1] for x in cfg['dicts']]
         result = []
         # search deinflected verb
-        v_inf = ''
-        v_blurb = ''
         if cfg['deinflect'] and mode == ScanMode.JAP and _vc_loaded:
-            result, v_inf, v_blurb = self._search_deinflected(dics, term, mode, limit)
+            result = self._search_deinflected(dics, term, mode, limit)
             limit -= len(result)
         # normal search
         rlen = len(result)
@@ -1225,9 +1224,6 @@ class jpMainWindow(QMainWindow):
         if rlen > cfg['hardlimit'] / 2:
             self.result_pane.setPlainText('Formatting...')
             QApplication.processEvents()
-        if v_blurb:
-            verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s<br>' % v_blurb
-            re_inf = re.compile(v_inf, re.IGNORECASE)
         re_term = re.compile(term, re.IGNORECASE)
         re_entity = re.compile(r'EntL\d+X?; *$', re.IGNORECASE)
         re_mark = re.compile(r'(\(.+?\))')
@@ -1240,6 +1236,9 @@ class jpMainWindow(QMainWindow):
             grp = match.group(0) if org is None else org[match.span()[0]:match.span()[1]]
             return '%s%s</span>' % (hlfmt, grp)
         for idx, res in enumerate(result):
+            if len(res) > 3:
+                verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s<br>' % res[3][1]
+                re_inf = re.compile(res[3][0], re.IGNORECASE)
             # render edict2 priority markers in small font (headwords only)
             res[0] = re_mark.sub(r'<small>\1</small>', res[0])
             # line break edict2 multi-headword entries
