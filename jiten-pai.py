@@ -1094,7 +1094,7 @@ class jpMainWindow(QMainWindow):
         self.search_box.setCurrentIndex(-1)
         self.search_box.lineEdit().setText("")
 
-    TERM_END = r'(\(.*\))?(;|$)'
+    TERM_END = r'(\(.+?\))?(;|$)'
     def _search_apply_options(self, term, mode):
         s_term = term
         if mode == ScanMode.JAP:
@@ -1137,26 +1137,23 @@ class jpMainWindow(QMainWindow):
         self.result_group.setTitle(self.result_group.title() + '.')
         QApplication.processEvents()
 
-    def _search_deinflected(self, dics, term, mode, limit):
-        inflist = _vc_deinflect(term)
+    def _search_deinflected(self, inflist, dic, mode, limit):
         re_isnoun = re.compile(r'\(n\)')
         result = []
         for inf in inflist:
             s_term = r'(^|;)' + inf[0] + self.TERM_END
             # perform lookup
-            for d in dics:
-                res = dict_lookup(d, s_term, mode, limit)
-                for r in list(res):
-                    # drop nouns
-                    if re_isnoun.search(r[2]):
-                        continue
-                    # keep the rest, append inflection info
-                    r.append(inf)
-                    result.append(r)
-                    limit -= 1
-                self._search_show_progress()
-                if limit <= 0:
-                    break
+            res = dict_lookup(dic, s_term, mode, limit)
+            for r in list(res):
+                # drop nouns
+                if re_isnoun.search(r[2]):
+                    continue
+                # keep the rest with appended inflection info
+                r.append(inf)
+                result.append(r)
+                limit -= 1
+            if limit <= 0:
+                break
         return result
 
     def search(self):
@@ -1189,32 +1186,40 @@ class jpMainWindow(QMainWindow):
         QApplication.processEvents()
         mode = ScanMode.JAP if contains_cjk(term) else ScanMode.ENG
         if self.genopt_dict.isChecked():
-            dics = [self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())]
+            dics = [['', self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())]]
         else:
-            dics = [x[1] for x in cfg['dicts']]
+            dics = cfg['dicts']
         result = []
-        # search deinflected verb
+        # de-inflect verb
+        inflist = []
         if cfg['deinflect'] and mode == ScanMode.JAP and _vc_loaded:
-            result = self._search_deinflected(dics, term, mode, limit)
-            limit -= len(result)
-        # normal search
-        rlen = len(result)
-        while len(result) == rlen and limit > 0:
-            # apply search options
-            s_term = self._search_apply_options(term, mode)
-            # perform lookup
-            for d in dics:
-                r = dict_lookup(d, s_term, mode, limit)
+            inflist = _vc_deinflect(term)
+        # perform lookup
+        for d in dics:
+            if len(dics) > 1:
+                result.append(['#', d[0]])
+            # search de-inflected verbs
+            if len(inflist) > 0:
+                r = self._search_deinflected(inflist, d[1], mode, limit)
                 self._search_show_progress()
                 result.extend(r)
                 limit -= len(r)
                 if limit <= 0:
                     break
-            # relax search options
-            if len(result) == rlen and self.genopt_auto.isChecked():
-                if not self._search_relax(mode):
-                    break;
-            else:
+            # 'normal' search
+            rlen = len(result)
+            while True:
+                s_term = self._search_apply_options(term, mode)
+                r = dict_lookup(d[1], s_term, mode, limit)
+                self._search_show_progress()
+                result.extend(r)
+                limit -= len(r)
+                # relax search options
+                if limit <= 0 or len(result) != rlen \
+                   or not self.genopt_auto.isChecked() \
+                   or not self._search_relax(mode):
+                        break;
+            if limit <= 0:
                 break
         # report results
         rlen = len(result)
@@ -1236,6 +1241,9 @@ class jpMainWindow(QMainWindow):
             grp = match.group(0) if org is None else org[match.span()[0]:match.span()[1]]
             return '%s%s</span>' % (hlfmt, grp)
         for idx, res in enumerate(result):
+            if res[0] == '#':
+                html[idx+1] = '<p>Matches in <span style="color:#bc3031;">%s</span>:</p>' % res[1]
+                continue
             if len(res) > 3:
                 verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s<br>' % res[3][1]
                 re_inf = re.compile(res[3][0], re.IGNORECASE)
