@@ -277,16 +277,33 @@ class kdMainWindow(QDialog):
     def show_info(self, kanji=''):
         info = ['']
         r = kanji_lookup(cfg['kanjidic'], kanji[0] if kanji else '')
-
         nfmt = '<div style="font-family:%s;font-size:%.1fpt">' % (cfg['nfont'], cfg['nfont_sz'])
         lfmt = '<span style="font-family:%s;font-size:%.1fpt;">' % (cfg['lfont'], cfg['lfont_sz'])
-
+        hlfmt = '<span style="color:%s;">' % cfg['hl_col']
         info.append(nfmt)
         for k, v in r.items():
+            line = hlfmt
             if k == 'kanji':
-                info.append('<p>Kanji: %s%s</span></p>\n' % (lfmt, v))
+                line += 'Kanji:</span> %s%s</span><br>\n' % (lfmt, v)
+            elif k == 'radicals':
+                line += 'Radicals:</span> %s<br>\n' % v
+            elif k == 'strokes':
+                line += 'Stroke count:</span> %s<br>\n' % v
+            elif k == 'readings':
+                line += 'Readings:</span> %s<br>\n' % v.replace('T2', 'Radical Name:').replace('T1', 'Name Readings:')
+            elif k == 'r_korean':
+                line += 'Romanized Korean reading:</span> %s<br>\n' % v
+            elif k == 'r_pinyin':
+                line += 'Romanized Pinyin reading:</span> %s<br>\n' % v
+            elif k == 'meaning':
+                line += 'English meaning:</span> %s<br>\n' % v
+            elif k == 'freq':
+                line += 'Frequency number:</span> %s<br>\n' % v
+            elif k == 'grade':
+                line += 'Jouyou grade level:</span> %s<br>\n' % v
             else:
-                info.append('%s: %s<br>\n' % (k, v))
+                line += '%s:</span> %s<br>\n' % (k, v)
+            info.append(line)
         info.append('</div>')
         self.info_pane.setHtml(''.join(info))
 
@@ -358,7 +375,7 @@ def kanji_lookup(dict_fname, kanji):
                             res[k[1]] = t[len(k[0]):]
                             break
                 # get readings (i.e. all that's left)
-                res['readings'] = line.strip().replace(' ', '; ').replace('T2;', 'Radical Name:').replace('T1;', 'Name Readings:')
+                res['readings'] = line.strip().replace(' ', ', ').replace('T2,', 'T2').replace('T1,', 'T1')
                 break
         res['radicals'] = _k2rad(kanji)
     except Exception as e:
