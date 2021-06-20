@@ -89,35 +89,30 @@ def _load_cfg():
 ############################################################
 # kanji <--> radical cross-reference
 
-_radk = dict()
-_krad = dict()
+_srad = [''] * 20   # format: [ stroke_cnt -> 'radical_list' ]
+_radk = dict()      # format: { 'radical': [stroke_cnt, 'kanji_list'], ... }
+_krad = dict()      # format: { 'kanji': 'radical_list', ... }
 
 def _rad_load():
-    global _radk
-    global _krad
-    global _radk_loaded
-    global _krad_loaded
     radk_name = _KANJIDIC_RADK
     if not os.access(radk_name, os.R_OK):
         radk_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, _KANJIDIC_RADK), mode=os.R_OK)
     try:
         with open(radk_name) as radk_file:
-            re_radk = re.compile(r'^\$\s+(.)\s+\d+')
+            re_radic = re.compile(r'^\$\s+(.)\s+(\d+)')
             re_kanji = re.compile(r'^([^#$]\S*)')
-            radical = None
-            kanji = ''
+            radical = '?'
             for line in radk_file:
-                m = re_radk.search(line)
-                if m:
-                    if radical:
-                        _radk[radical] = kanji
-                    kanji = ''
-                    radical = m.group(1)
                 m = re_kanji.search(line)
                 if m:
-                    kanji += m.group(1)
-            if radical:
-                _radk[radical] = kanji
+                    _radk[radical][1] += m.group(1)
+                    continue
+                m = re_radic.search(line)
+                if m:
+                    radical = m.group(1)
+                    stroke = int(m.group(2))
+                    _radk[radical] = [stroke, '']
+                    _srad[stroke] += m.group(1)
     except Exception as e:
         eprint('_rad_load:', radk_name, str(e))
     krad_name = _KANJIDIC_KRAD
@@ -125,7 +120,7 @@ def _rad_load():
         krad_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, _KANJIDIC_KRAD), mode=os.R_OK)
     try:
         with open(krad_name) as krad_file:
-            re_krad = re.compile(r'^([^#$\s]) : (.+)$')
+            re_krad = re.compile(r'^([^#\s]) : (.+)$')
             for line in krad_file:
                 m = re_krad.search(line)
                 if m:
@@ -137,7 +132,7 @@ def _rad2k(rad):
     try:
         return _radk[rad]
     except:
-        return ''
+        return ['', '']
 
 def _k2rad(kanji):
     try:
