@@ -94,6 +94,7 @@ _radk = dict()      # format: { 'radical': [stroke_cnt, 'kanji_list'], ... }
 _krad = dict()      # format: { 'kanji': 'radical_list', ... }
 
 def _rad_load():
+    res = True
     radk_name = _KANJIDIC_RADK
     if not os.access(radk_name, os.R_OK):
         radk_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, _KANJIDIC_RADK), mode=os.R_OK)
@@ -115,6 +116,7 @@ def _rad_load():
                     _srad[stroke] += m.group(1)
     except Exception as e:
         eprint('_rad_load:', radk_name, str(e))
+        res = False
     krad_name = _KANJIDIC_KRAD
     if not os.access(krad_name, os.R_OK):
         krad_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, _KANJIDIC_KRAD), mode=os.R_OK)
@@ -127,6 +129,8 @@ def _rad_load():
                     _krad[m.group(1)] = m.group(2)
     except Exception as e:
         eprint('_rad_load:', krad_name, str(e))
+        res = False
+    return res
 
 def _rad2k(rad):
     try:
@@ -139,6 +143,103 @@ def _k2rad(kanji):
         return _krad[kanji]
     except:
         return ''
+
+# load kanjidic
+# See: http://www.edrdg.org/kanjidic/kanjidic_doc_legacy.html#IREF02
+#
+# kanjidic example lines:
+#
+# 心 3F34 U5fc3 B61 G2 S4 XJ13D38 F157 J3 N1645 V1780 H11 DP11 DK4 DL4 L595
+# DN639 K139 O49 DO80 MN10295 MP4.0937 E147 IN97 DA97 DS95 DF172 DH164 DT96
+# DC64 DJ172 DB2.14 DG766 DM602 P1-1-3 I4k0.1 Q3300.0 DR358 ZPP4-4-4 Yxin1
+# Wsim シン こころ -ごころ T2 りっしんべん {heart} {mind} {spirit} {heart radical (no. 61)}
+#
+# 逢 3029 U9022 B162 G9 S10 S9 S11 F2116 N4694 V6054 DP4002 DL2774 L2417
+# DN2497 O1516 MN38901X MP11.0075 P3-3-7 I2q7.15 Q3730.4 DR2555 ZRP3-4-7
+# Yfeng2 Wbong ホウ あ.う むか.える T1 あい おう {meeting} {tryst} {date} {rendezvous}
+#
+# 挨 3027 U6328 B64 G8 S10 F2258 N1910 V2160 DP510 DL383 L2248 DN1310 MN12082
+# MP5.0229 DA1101 P1-3-7 I3c7.12 Q5303.4 DR1363 Yai1 Yai2 Wae アイ ひら.く
+# {approach} {draw near} {push open}
+
+_kanjidic = dict()     # format: { 'kanji': {info}, ...}
+
+def _kanjidic_load(dict_fname):
+    ktable = [
+        ['F', 'freq'],
+        ['G', 'grade'],
+        ['S', 'strokes'],
+        ['W', 'r_korean'],
+        ['Y', 'r_pinyin'],
+    ]
+    re_braces = re.compile(r'\{.*\}.*$')
+    re_tags = re.compile(r'[BCFGJHNVDPSUIQMEKLOWYXZ]\S+')
+    try:
+        with open(dict_fname) as dict_file:
+            for line in dict_file:
+                if line[0] in '# ':
+                    continue
+                info = {
+                    'strokes': '',
+                    'readings': '',
+                    'r_korean': '',
+                    'r_pinyin': '',
+                    'meaning': '',
+                    'freq': '',
+                    'grade': '',
+                }
+                kanji = line[0]
+                # skip kanji and JIS code
+                line = line[6:]
+                # save meaning
+                m = re_braces.search(line).group(0)
+                info['meaning'] = m.replace('{', '').replace('}', ';').strip()
+                line = re_braces.sub('', line)
+                # get tags
+                tlist = []
+                while True:
+                    m = re_tags.search(line)
+                    if m is None:
+                        break;
+                    tlist.append(m.group(0))
+                    line = re_tags.sub('', line, 1)
+                for t in tlist:
+                    for k in ktable:
+                        if t[:len(k[0])] == k[0]:
+                            info[k[1]] = t[len(k[0]):]
+                            break
+                # get readings (i.e. all that's left)
+                info['readings'] = line.strip().replace(' ', ', ').replace('T2,', 'T2').replace('T1,', 'T1')
+                _kanjidic[kanji] = info
+    except Exception as e:
+        print('_kanjidic_load:', dict_fname, str(e))
+        return False
+    return True
+
+def _kanjidic_lookup(kanji):
+    try:
+        kanji = kanji[0]
+        res = {
+            'kanji': kanji,
+            'radicals': _k2rad(kanji),
+        }
+        res.update(_kanjidic[kanji])
+    except:
+        res = {}
+    return res
+
+def _s2kanji(strokes, tolerance=0):
+    min_strok = strokes - tolerance
+    max_strok = strokes + tolerance
+    res = ''
+    for k, v in _kanjidic.items():
+        try:
+            s = int(v['strokes'])
+        except:
+            continue
+        if min_strok <= s and s <= max_strok:
+            res += k
+    return res
 
 
 ############################################################
@@ -222,15 +323,22 @@ class zQTextEdit(QTextEdit):
 
 class kdMainWindow(QDialog):
     kanji_click = pyqtSignal(str)
+    dic_ok = True
 
     def __init__(self, *args, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, **kwargs):
         super().__init__(*args, **kwargs)
         self.setModal(False)
         self.setParent(None, self.windowFlags() & ~Qt.WindowStaysOnTopHint)
         self.init_cfg()
-        # load radkfile & kradfile
-        _rad_load()
         self.init_ui(title)
+        QApplication.processEvents()
+        # load radkfile, kradfile, kanjidic
+        if not _rad_load():
+            self.show_error('Error loading radkfile/kradfile!')
+            self.dic_ok = False
+        if not _kanjidic_load(cfg['kanjidic']):
+            self.show_error('Error loading kanjidic!')
+            self.dic_ok = False
 
     def init_cfg(self):
         _load_cfg()
@@ -269,14 +377,20 @@ class kdMainWindow(QDialog):
         QShortcut('Ctrl+Q', self).activated.connect(lambda: self.closeEvent(None))
         QShortcut('Ctrl+W', self).activated.connect(lambda: self.closeEvent(None))
 
+    def show_error(self, msg=''):
+        msg = '<span style="color:red;">%s</span>\n' % msg
+        self.info_pane.setHtml(self.info_pane.toHtml() + msg)
+
     def show_info(self, kanji=''):
+        if not self.dic_ok:
+            return
         info = ['']
-        r = kanji_lookup(cfg['kanjidic'], kanji[0] if kanji else '')
+        res = _kanjidic_lookup(kanji)
         nfmt = '<div style="font-family:%s;font-size:%.1fpt">' % (cfg['nfont'], cfg['nfont_sz'])
         lfmt = '<span style="font-family:%s;font-size:%.1fpt;">' % (cfg['lfont'], cfg['lfont_sz'])
         hlfmt = '<span style="color:%s;">' % cfg['hl_col']
         info.append(nfmt)
-        for k, v in r.items():
+        for k, v in res.items():
             line = hlfmt
             if k == 'kanji':
                 line += 'Kanji:</span> %s%s</span><br>\n' % (lfmt, v)
@@ -303,81 +417,6 @@ class kdMainWindow(QDialog):
         self.info_pane.setHtml(''.join(info))
 
 
-# Kanjidic lookup
-# See: http://www.edrdg.org/kanjidic/kanjidic_doc_legacy.html#IREF02
-#
-# kanjidic example lines:
-#
-# 心 3F34 U5fc3 B61 G2 S4 XJ13D38 F157 J3 N1645 V1780 H11 DP11 DK4 DL4 L595
-# DN639 K139 O49 DO80 MN10295 MP4.0937 E147 IN97 DA97 DS95 DF172 DH164 DT96
-# DC64 DJ172 DB2.14 DG766 DM602 P1-1-3 I4k0.1 Q3300.0 DR358 ZPP4-4-4 Yxin1
-# Wsim シン こころ -ごころ T2 りっしんべん {heart} {mind} {spirit} {heart radical (no. 61)}
-#
-# 逢 3029 U9022 B162 G9 S10 S9 S11 F2116 N4694 V6054 DP4002 DL2774 L2417
-# DN2497 O1516 MN38901X MP11.0075 P3-3-7 I2q7.15 Q3730.4 DR2555 ZRP3-4-7
-# Yfeng2 Wbong ホウ あ.う むか.える T1 あい おう {meeting} {tryst} {date} {rendezvous}
-#
-# 挨 3027 U6328 B64 G8 S10 F2258 N1910 V2160 DP510 DL383 L2248 DN1310 MN12082
-# MP5.0229 DA1101 P1-3-7 I3c7.12 Q5303.4 DR1363 Yai1 Yai2 Wae アイ ひら.く
-# {approach} {draw near} {push open}
-
-def kanji_lookup(dict_fname, kanji):
-    res = {
-        'kanji': '',
-        'radicals': '',
-        'strokes': '',
-        'readings': '',
-        'r_korean': '',
-        'r_pinyin': '',
-        'meaning': '',
-        'freq': '',
-        'grade': '',
-    }
-    ktable = [
-        ['F', 'freq'],
-        ['G', 'grade'],
-        ['S', 'strokes'],
-        ['W', 'r_korean'],
-        ['Y', 'r_pinyin'],
-    ]
-    re_braces = re.compile(r'\{.*\}.*$')
-    re_tags = re.compile(r'[BCFGJHNVDPSUIQMEKLOWYXZ]\S+')
-    try:
-        with open(dict_fname) as dict_file:
-            for line in dict_file:
-                if line[0] != kanji:
-                    continue
-                # save kanji
-                res['kanji'] = line[0]
-                line = line[2:]
-                # skip JIS
-                line = line[4:]
-                # save meaning
-                m = re_braces.search(line).group(0)
-                res['meaning'] = m.replace('{', '').replace('}', ';').strip()
-                line = re_braces.sub('', line)
-                # get tags
-                tlist = []
-                while True:
-                    m = re_tags.search(line)
-                    if m is None:
-                        break;
-                    tlist.append(m.group(0))
-                    line = re_tags.sub('', line, 1)
-                for t in tlist:
-                    for k in ktable:
-                        if t[:len(k[0])] == k[0]:
-                            res[k[1]] = t[len(k[0]):]
-                            break
-                # get readings (i.e. all that's left)
-                res['readings'] = line.strip().replace(' ', ', ').replace('T2,', 'T2').replace('T1,', 'T1')
-                break
-        res['radicals'] = _k2rad(kanji)
-    except Exception as e:
-        print('klookup:', dict_fname, str(e))
-    return res
-
-
 ############################################################
 # main function
 
@@ -387,8 +426,8 @@ def _main():
     app = QApplication(sys.argv)
     app.setApplicationName(_KANJIDIC_NAME)
     root = kdMainWindow()
-    root.show_info(kanji)
     root.show()
+    root.show_info(kanji)
     sys.exit(app.exec_())
 
 if __name__== "__main__":
