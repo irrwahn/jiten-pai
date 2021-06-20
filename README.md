@@ -13,76 +13,91 @@ and installed separately, see next section.
 
 ## Get and Install Dictionary Files
 
-Jiten-pai supports dictionary files in EDICT format, as made available by the
-[Electronic Dictionary Research and Development Group](http://www.edrdg.org/)
-as part of the *Japanese/English Dictionary Project*:
+Jiten-pai supports word dictionary files in EDICT format, as made available by
+the [Electronic Dictionary Research and Development Group](http://www.edrdg.org/):
 
-* [EDICT2u](http://ftp.edrdg.org/pub/Nihongo/edict2u.gz) *(recommended)*
-    * EDICT main dictionary, modern format, UTF-8 coding
-    * download file to a convenient location, unpack like this:
-      > `gunzip edict2u.gz`
-    * install in Jiten-pai using the Edit->Preferences dialog
-
-* [EDICT](http://ftp.edrdg.org/pub/Nihongo/edict.gz) *(not recommended)*
-    * same as above, legacy format, EUC-JP coding
+* [EDICT2](http://ftp.edrdg.org/pub/Nihongo/edict2.gz) *(essential)*
+    * EDICT main dictionary; modern, revised format; EUC-JP encoding;
     * download file, then unpack and convert to UTF-8:
-      > `zcat edict.gz | recode EUC-JP..UTF-8 > edict`
-    * install using Edit->Preferences
+      > `zcat edict2.gz | recode EUC-JP..UTF-8 > edict2`
+    * install in Jiten-pai using the Edit->Preferences dialog
+    * **HINT:** In case any of the `zcat` or `recode` utilities are not available,
+      the included simple transcoding utility can be used instead, e.g.:
+```
+            eucjp_to_utf8.py edict2.gz edict2
+            eucjp_to_utf8.py enamdict.gz enamdict
+            eucjp_to_utf8.py kanjidic.gz kanjidic
+```
 
-The following is part of the *Japanese Proper Names Dictionary project*:
+* [EDICT](http://ftp.edrdg.org/pub/Nihongo/edict.gz) *(obsolete)*
+    * predecessor to EDICT2; legacy format; EUC-JP encoding
+    * download file, unpack and convert to UTF-8 *(see above)*
+    * install via Edit->Preferences
 
 * [ENAMDICT](http://ftp.edrdg.org/pub/Nihongo/enamdict.gz) *(optional)*
-    * named entity dictionary, EUC-JP coding
-    * download file, then unpack and convert to UTF-8:
-      > `zcat enamdict.gz | recode EUC-JP..UTF-8 > enamdict`
-    * install using Edit->Preferences
+    * named entity dictionary; EDICT format; EUC-JP encoding
+    * download file, unpack and convert to UTF-8 *(see above)*
+    * install via Edit->Preferences
 
-Additional dictionaries and alternative language versions are available at
-the EDRDG, see the [FTP archive](http://ftp.edrdg.org/pub/Nihongo/#dic_fil).
-The respective accompanying documentation will have the details, and in
-particular indicate whether a file is actually in EDICT format. In many
-cases a conversion from EUC-JP to UTF-8 will be necessary, as outlined in
-the examples above.
+More word dictionaries and alternative language versions are available at
+the [EDRDG archive](http://ftp.edrdg.org/pub/Nihongo/#dic_fil). The
+respective accompanying documentation will have the details, and in
+particular indicate whether a file is actually in EDICT(2) format. In most
+cases a conversion from EUC-JP to UTF-8 will be necessary, see above.
 
-**HINT:** In case the `recode` utility is not available, the included
-transcoding script may be used instead, e.g.:
-> `./eucjp_to_utf8.py enamdict.gz enamdict`
+In addition to any of the abovementioned word dictionaries, the KanjiDic
+part of Jiten-pai requires installation of the `kanjidic` file, also made
+available by the EDRDG:
+
+* [KANJIDIC](http://ftp.edrdg.org/pub/Nihongo/kanjidic.gz) *(recommended)*
+    * Kanji dictionary; EUC-JP encoding
+    * download file, unpack and convert to UTF-8 *(see above)*
+    * install via Edit->Preferences
+
+The [EDRDG licence page](http://www.edrdg.org/edrdg/licence.html) provides
+dictionary copyright information and licensing terms.
 
 
 ## Notes
-
-@@@ ToDo
 
 * If the search term contains any Katakana or Hiragana, Jiten-pai will
   always report matches for both syllabaries. This is intentional.
 
 * During startup Jiten-pai will look for the `vconj.utf8` verb conjugation
-  file in the following directories, in the given order:
+  file as well as the `kradfile.utf8` and `radkfile.utf8` Kanji radical
+  cross-reference files in the following directories, in the given order:
     * `$HOME/.local/share/jiten-pai/`
     * `/usr/local/share/jiten-pai/`
     * `/usr/share/jiten-pai/`
     * `current working directory`
 
-    Without this file the verb de-inflection option will not be available.
+    Without these files verb de-inflection and radical search, respectively,
+    will not be available.
+
+* ... @@@ ToDo
 
 
 ## Known issues
 
-@@@ ToDo
+* KanjiDic is only partially implemented.
 
-* KanjiDic is not implemented yet.
+* ... @@@ ToDo
 
-* ...
 
 ## License
 
 Jiten-pai incorporates parts taken from other projects, namely:
 
-* Kana conversion code adapted from [jaconv](https://github.com/ikegami-yukino/jaconv),
-  Copyright (c) 2014 Yukino Ikegami, MIT License
+* Kana conversion code adapted from [jaconv](https://github.com/ikegami-yukino/jaconv);
+  Copyright (c) 2014 Yukino Ikegami; MIT License
 
-* VCONJ verb de-inflection rule file taken from [Gjiten](http://gjiten.sourceforge.net/),
-  Copyright (c) 1999-2005 Botond Botyanszki, GNU General Public License v2.0
+* VCONJ verb de-inflection rule file adapted from [Gjiten](http://gjiten.sourceforge.net/);
+  Copyright (c) 1999-2005 Botond Botyanszki; GNU General Public License v2.0
+
+* RADKFILE and KRADFILE radical cross-reference adapted from
+  [The KRADFILE/RADKFILE Project](http://www.edrdg.org/krad/kradinf.html);
+  Copyright (c) James William BREEN and The Electronic Dictionary Research
+  and Development Group; Creative Commons Attribution-ShareAlike Licence (V3.0)
 
 The remaining majority of Jiten-pai code is distributed under the
 Modified ("3-clause") BSD License. See `LICENSE` file for more information.

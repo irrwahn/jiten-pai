@@ -14,14 +14,14 @@ Phase II
 [x] preferences, config file
 [x] history
 [x] Romaji input
-[ ] app icon, "About" dialog
+[ ] program name, icon, "About & Help" dialog
 [ ] README
 [x] verb de-inflection
 
 
 Phase III
 ---------
-[ ] dict download & conversion (as separate tool?)
+[x] dict file conversion as separate tool
 
 
 Phase IV
