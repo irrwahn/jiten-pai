@@ -407,22 +407,24 @@ class zQGroupBox(QGroupBox):
 class zQTextEdit(QTextEdit):
     kanji = None
     kanji_click = pyqtSignal(str)
+    app = None
     _ov_cursor = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.kanji = ''
+        self.app = QCoreApplication.instance()
         self.setMouseTracking(True)
 
     def _override_cursor(self):
         if not self._ov_cursor:
             self._ov_cursor = True
-            app.setOverrideCursor(Qt.WhatsThisCursor)
+            self.app.setOverrideCursor(Qt.WhatsThisCursor)
 
     def _restore_cursor(self):
         if self._ov_cursor:
             self._ov_cursor = False
-            app.restoreOverrideCursor()
+            self.app.restoreOverrideCursor()
 
     def mouseMoveEvent(self, event):
         pos = event.pos()
@@ -1166,9 +1168,16 @@ class jpMainWindow(QMainWindow):
         dlg = aboutDialog(self)
         dlg.exec_()
 
+    def kanjidic_clicked(self, kanji=''):
+        if kanji:
+            self.search_box.lineEdit().setText(kanji)
+            self.activateWindow()
+            self.search()
+
     def kanjidic(self, kanji=''):
         if not self.kanji_dlg:
             self.kanji_dlg = kdMainWindow(self)
+            self.kanji_dlg.kanji_click.connect(self.kanjidic_clicked)
         self.kanji_dlg.show_info(kanji)
         self.kanji_dlg.showNormal()
         self.kanji_dlg.activateWindow()

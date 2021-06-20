@@ -28,6 +28,9 @@ def die(rc=0):
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
+def is_kanji(s):
+    return True if re.match("^[\u4e00-\u9FFF]$", s) else False
+
 def _get_dfile_path(fname, mode=os.R_OK):
     cdirs = []
     if os.environ.get('APPDATA'):
@@ -169,11 +172,62 @@ class zQGroupBox(QGroupBox):
             }"""
         )
 
+class zQTextEdit(QTextEdit):
+    kanji = None
+    kanji_click = pyqtSignal(str)
+    app = None
+    _ov_cursor = False
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.kanji = ''
+        self.app = QCoreApplication.instance()
+        self.setMouseTracking(True)
+
+    def _override_cursor(self):
+        if not self._ov_cursor:
+            self._ov_cursor = True
+            self.app.setOverrideCursor(Qt.WhatsThisCursor)
+
+    def _restore_cursor(self):
+        if self._ov_cursor:
+            self._ov_cursor = False
+            self.app.restoreOverrideCursor()
+
+    def mouseMoveEvent(self, event):
+        pos = event.pos()
+        pos.setX(pos.x() - 15)
+        old_tcur = self.textCursor()
+        tcur = self.cursorForPosition(pos)
+        self.setTextCursor(tcur)
+        tcur.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor);
+        char = tcur.selectedText()
+        scr = self.verticalScrollBar().value()
+        self.setTextCursor(old_tcur)
+        self.verticalScrollBar().setValue(scr)
+        if is_kanji(char):
+            self.kanji = char
+            self._override_cursor()
+        else:
+            self.kanji = ''
+            self._restore_cursor()
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.kanji and len(self.textCursor().selectedText()) < 1:
+            self.kanji_click.emit(self.kanji)
+
+    def leaveEvent(self, event):
+        self.kanji = ''
+        self._restore_cursor()
+
 
 ############################################################
 # main window class
 
 class kdMainWindow(QDialog):
+    kanji_click = pyqtSignal(str)
+
     def __init__(self, *args, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, **kwargs):
         super().__init__(*args, **kwargs)
         self.setModal(False)
@@ -204,7 +258,8 @@ class kdMainWindow(QDialog):
         self.result_group.setLayout(result_layout)
         # info area
         self.info_group = zQGroupBox('Kanji Info:')
-        self.info_pane = QTextEdit()
+        self.info_pane = zQTextEdit()
+        self.info_pane.kanji_click.connect(self.kanji_click)
         self.info_pane.setReadOnly(True)
         self.info_pane.setText('')
         info_layout = zQVBoxLayout()
