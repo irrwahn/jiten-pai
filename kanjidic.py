@@ -421,6 +421,7 @@ class zFlowLayout(QLayout):
             lineHeight = max(lineHeight, item.sizeHint().height())
         return y + lineHeight - rect.y() + bottom
 
+
 class zFlowScrollArea(QScrollArea):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -435,8 +436,10 @@ class zFlowScrollArea(QScrollArea):
         pane = QWidget()
         self.setWidget(pane)
         layout = zFlowLayout(self.widget(), 0, 0, 0)
+        layout.setEnabled(False)
         for tl in tiles:
             layout.addWidget(tl)
+        layout.setEnabled(True)
         self.setUpdatesEnabled(True)
 
     def insert(self, w):
