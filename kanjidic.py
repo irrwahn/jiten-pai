@@ -675,7 +675,7 @@ class kdMainWindow(QDialog):
 
     def closeEvent(self, event):
         if self.radlist:
-            self.radlist.destroy()
+            self.radlist.close()
         event.accept()
 
     def stroke_search_toggle(self):
