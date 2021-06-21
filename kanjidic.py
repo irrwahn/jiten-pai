@@ -601,7 +601,7 @@ class kdMainWindow(QDialog):
         stroke_search_layout = zQHBoxLayout()
         self.stroke_search_check = QCheckBox('Search By Strokes:')
         self.stroke_search_num = QSpinBox()
-        self.stroke_search_num.setRange(1,42)
+        self.stroke_search_num.setRange(1,30)
         self.stroke_search_tol_label = QLabel('+/-')
         self.stroke_search_tol_label.setAlignment(Qt.AlignRight)
         self.stroke_search_tol = QSpinBox()
