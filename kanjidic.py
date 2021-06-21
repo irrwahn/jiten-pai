@@ -578,8 +578,8 @@ class kdMainWindow(QDialog):
         self.rad_search_check.toggled.connect(self.rad_search_toggle)
         self.rad_search_check.setChecked(True)
         self.rad_search_check.setChecked(False)
-        QShortcut('Ctrl+Q', self).activated.connect(lambda: self.closeEvent(None))
-        QShortcut('Ctrl+W', self).activated.connect(lambda: self.closeEvent(None))
+        QShortcut('Ctrl+Q', self).activated.connect(lambda: self.close())
+        QShortcut('Ctrl+W', self).activated.connect(lambda: self.close())
 
     def init_cfg(self):
         _load_cfg()
@@ -670,11 +670,10 @@ class kdMainWindow(QDialog):
         self.radlist.show()
         self.radlist.activateWindow()
 
-    def closeEvent(self, event=None):
+    def closeEvent(self, event):
         if self.radlist:
             self.radlist.destroy()
-        super().closeEvent(event)
-        die()
+        event.accept()
 
     def stroke_search_toggle(self):
         en = self.stroke_search_check.isChecked()
