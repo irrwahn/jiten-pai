@@ -586,7 +586,8 @@ class kdMainWindow(QDialog):
 
     def search_clear(self):
         self.rad_search_box.lineEdit().setText('')
-        self.radlist.set_avail(None)
+        if self.radlist:
+            self.radlist.set_avail(None)
 
     def init_ui(self, title=''):
         #jpIcon()
