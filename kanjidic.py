@@ -126,7 +126,7 @@ def _rad_load():
             for line in krad_file:
                 m = re_krad.search(line)
                 if m:
-                    _krad[m.group(1)] = m.group(2)
+                    _krad[m.group(1)] = m.group(2).replace(' ', '')
     except Exception as e:
         eprint('_rad_load:', krad_name, str(e))
         res = False
@@ -237,7 +237,7 @@ def _s2kanji(strokes, tolerance=0):
             s = int(v['strokes'])
         except:
             continue
-        if min_strok <= s and s <= max_strok:
+        if min_strok <= s <= max_strok:
             res += k
     return res
 
@@ -317,6 +317,235 @@ class zQTextEdit(QTextEdit):
         self.kanji = ''
         self._restore_cursor()
 
+# adapted from Qt flow layout C++ example
+class zFlowLayout(QLayout):
+    def __init__(self, parent: QWidget=None, margin: int=-1, hSpacing: int=-1, vSpacing: int=-1):
+        super().__init__(parent)
+        self.itemList = list()
+        self.m_hSpace = hSpacing
+        self.m_vSpace = vSpacing
+        self.setContentsMargins(margin, margin, margin, margin)
+
+    def addItem(self, item):
+        self.itemList.append(item)
+
+    def rotate_right(self, n):
+        l = len(self.itemList)
+        if l > n:
+            self.itemList = self.itemList[-n:] + self.itemList[:-n]
+
+    def count(self):
+        return len(self.itemList)
+
+    def itemAt(self, index):
+        try:
+            return self.itemList[index]
+        except:
+            return None
+
+    def takeAt(self, index):
+        try:
+            return self.itemList.pop(index)
+        except:
+            return None
+
+    def horizontalSpacing(self):
+        if self.m_hSpace >= 0:
+            return self.m_hSpace
+        else:
+            return self.smartSpacing(QStyle.PM_LayoutHorizontalSpacing)
+
+    def verticalSpacing(self):
+        if self.m_vSpace >= 0:
+            return self.m_vSpace
+        else:
+            return self.smartSpacing(QStyle.PM_LayoutVerticalSpacing)
+
+    def smartSpacing(self, pm):
+        parent = self.parent()
+        if not parent:
+            return -1
+        elif parent.isWidgetType():
+            return parent.style().pixelMetric(pm, None, parent)
+        else:
+            return parent.spacing()
+
+    def expandingDirections(self):
+        return Qt.Orientations(Qt.Orientation(0))
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, width):
+        height = self.doLayout(QRect(0, 0, width, 0), True)
+        return height
+
+    def setGeometry(self, rect):
+        super().setGeometry(rect)
+        self.doLayout(rect, False)
+
+    def sizeHint(self):
+        return self.minimumSize()
+
+    def minimumSize(self):
+        size = QSize()
+        for item in self.itemList:
+            size = size.expandedTo(item.minimumSize())
+        margins = self.contentsMargins()
+        size += QSize(margins.left() + margins.right(), margins.top() + margins.bottom())
+        return size
+
+    def doLayout(self, rect, testOnly):
+        left, top, right, bottom = self.getContentsMargins()
+        effectiveRect = rect.adjusted(+left, +top, -right, -bottom)
+        x = effectiveRect.x()
+        y = effectiveRect.y()
+        lineHeight = 0
+        for item in self.itemList:
+            wid = item.widget()
+            spaceX = self.horizontalSpacing()
+            if spaceX == -1:
+                spaceX = wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Horizontal)
+            spaceY = self.verticalSpacing()
+            if spaceY == -1:
+                spaceY = wid.style().layoutSpacing(QSizePolicy.PushButton, QSizePolicy.PushButton, Qt.Vertical)
+            nextX = x + item.sizeHint().width() + spaceX
+            if nextX - spaceX > effectiveRect.right() and lineHeight > 0:
+                x = effectiveRect.x()
+                y = y + lineHeight + spaceY
+                nextX = x + item.sizeHint().width() + spaceX
+                lineHeight = 0
+            if not testOnly:
+                item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
+            x = nextX
+            lineHeight = max(lineHeight, item.sizeHint().height())
+        return y + lineHeight - rect.y() + bottom
+
+class zFlowScrollArea(QScrollArea):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def clear(self):
+        if self.widget():
+            self.takeWidget().deleteLater()
+
+    def fill(self, tiles):
+        self.setUpdatesEnabled(False)
+        self.clear()
+        pane = QWidget()
+        self.setWidget(pane)
+        layout = zFlowLayout(self.widget(), 0, 0, 0)
+        for tl in tiles:
+            layout.addWidget(tl)
+        self.setUpdatesEnabled(True)
+
+    def insert(self, w):
+        self.setUpdatesEnabled(False)
+        if not self.widget():
+            pane = QWidget()
+            self.setWidget(pane)
+            layout = zFlowLayout(self.widget(), 0, 0, 0)
+        self.widget().layout().addWidget(w)
+        self.widget().layout().rotate_right(1)
+        self.setUpdatesEnabled(True)
+
+class zKanjiButton(QPushButton):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setContentsMargins(QMargins(0,0,0,0))
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.setStyleSheet(None)
+        self.setContentsMargins(QMargins(0,0,0,0))
+        self.click_action = None
+        self.clicked.connect(self._click)
+
+    def _click(self):
+        if self.click_action:
+            self.click_action(self)
+
+    def sizeHint(self):
+        return QSize(64, 64)
+
+    def resizeEvent(self, event):
+        sz = min(self.rect().height(), self.rect().width()) - 8
+        font = self.font()
+        font.setPixelSize(sz)
+        self.setFont(font)
+
+class zRadicalButton(zKanjiButton):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setCheckable(True)
+        self.setStyleSheet(None)
+        self.setContentsMargins(QMargins(0,0,0,0))
+        self.toggle_action = None
+        self.toggled.connect(self._toggle)
+
+    def _toggle(self):
+        self.setStyleSheet("background-color: lightyellow" if self.isChecked() else None)
+        if self.toggle_action:
+            self.toggle_action(self)
+
+    def sizeHint(self):
+        return QSize(24, 24)
+
+class kdRadicalList(QDialog):
+    btns = []
+
+    def __init__(self, *args, toggle_action=None, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.toggle_action = toggle_action
+        self._init_ui()
+
+    def _init_ui(self):
+        self.setWindowTitle('Radical List')
+        self.layout = QGridLayout(self)
+        self.layout.setSpacing(0)
+        self.layout.setContentsMargins(QMargins(5,5,5,5))
+        self.row = 0
+        self.col = 0
+        for stroke in range(len(_srad)):
+            if not len(_srad[stroke]):
+                continue
+            sep = zRadicalButton(str(stroke))
+            sep.setEnabled(False)
+            sep.setFlat(True)
+            self._add_widget(sep)
+            for rad in _srad[stroke]:
+                self._add_widget(zRadicalButton(rad))
+        self.resize(600, 600)
+        QShortcut('Ctrl+Q', self).activated.connect(lambda: self.closeEvent(None))
+        QShortcut('Ctrl+W', self).activated.connect(lambda: self.closeEvent(None))
+
+    def _add_widget(self, w):
+        w.toggle_action = self.toggle_action
+        self.btns.append(w)
+        self.layout.addWidget(w, self.row, self.col)
+        self.col += 1
+        if self.col >= 18:
+            self.col = 0
+            self.row += 1
+
+    def update(self, rads):
+        for btn in self.btns:
+            btn.toggle_action = None
+            btn.setChecked(False)
+            for r in rads:
+                if btn.text() == r:
+                    btn.setChecked(True)
+                    break
+            btn.toggle_action = self.toggle_action
+
+    def set_avail(self, avail):
+        if avail is None:
+            for btn in self.btns:
+                if not btn.isFlat():
+                    btn.setEnabled(True)
+        else:
+            for btn in self.btns:
+                if not btn.isChecked() and not btn.isFlat():
+                    btn.setEnabled(btn.text() in avail)
+
 
 ############################################################
 # main window class
@@ -339,6 +568,18 @@ class kdMainWindow(QDialog):
         if not _kanjidic_load(cfg['kanjidic']):
             self.show_error('Error loading kanjidic!')
             self.dic_ok = False
+        self.radlist = None
+        # initialize search options
+        self.stroke_search_check.toggled.connect(self.stroke_search_toggle)
+        self.stroke_search_num.valueChanged.connect(self.update_search)
+        self.stroke_search_tol.valueChanged.connect(self.update_search)
+        self.stroke_search_check.setChecked(True)
+        self.stroke_search_check.setChecked(False)
+        self.rad_search_check.toggled.connect(self.rad_search_toggle)
+        self.rad_search_check.setChecked(True)
+        self.rad_search_check.setChecked(False)
+        QShortcut('Ctrl+Q', self).activated.connect(lambda: self.closeEvent(None))
+        QShortcut('Ctrl+W', self).activated.connect(lambda: self.closeEvent(None))
 
     def init_cfg(self):
         _load_cfg()
@@ -351,13 +592,47 @@ class kdMainWindow(QDialog):
         self.clipboard = QApplication.clipboard()
         # search options
         self.opt_group = zQGroupBox('Kanji Search Options:')
-        opt_layout = QGridLayout()
+        # stroke search
+        stroke_search_layout = zQHBoxLayout()
+        self.stroke_search_check = QCheckBox('Search By Strokes:')
+        self.stroke_search_num = QSpinBox()
+        self.stroke_search_num.setRange(1,42)
+        self.stroke_search_tol_label = QLabel('+/-')
+        self.stroke_search_tol_label.setAlignment(Qt.AlignRight)
+        self.stroke_search_tol = QSpinBox()
+        stroke_search_layout.addWidget(self.stroke_search_check, 1)
+        stroke_search_layout.addWidget(self.stroke_search_num, 1)
+        stroke_search_layout.addWidget(self.stroke_search_tol_label, 1)
+        stroke_search_layout.addWidget(self.stroke_search_tol, 1)
+        stroke_search_layout.addStretch(10)
+        # radical search
+        rad_search_layout = zQHBoxLayout()
+        self.rad_search_check = QCheckBox('Search By Radical:')
+        self.rad_search_box = QComboBox()
+        self.rad_search_box.setCurrentIndex(-1)
+        self.rad_search_box.setEditable(True)
+        self.rad_search_box.lineEdit().textChanged.connect(self.on_search_edit)
+        self.rad_search_box.lineEdit().editingFinished.connect(self.update_search)
+        self.rad_search_clearbtn = QPushButton('Clear')
+        self.rad_search_clearbtn.clicked.connect(lambda: self.rad_search_box.lineEdit().setText(''))
+        self.rad_search_listbtn = QPushButton('Radical List')
+        self.rad_search_listbtn.clicked.connect(self.show_radlist)
+        rad_search_layout.addWidget(self.rad_search_check, 1)
+        rad_search_layout.addWidget(self.rad_search_box, 20)
+        rad_search_layout.addWidget(self.rad_search_clearbtn, 2)
+        rad_search_layout.addWidget(self.rad_search_listbtn, 2)
+        opt_layout = zQVBoxLayout()
+        opt_layout.addLayout(stroke_search_layout)
+        opt_layout.addLayout(rad_search_layout)
         self.opt_group.setLayout(opt_layout)
         # search results
         self.result_group = zQGroupBox('Search Results:')
-        self.result_pane = QWidget()
-        result_layout = QGridLayout()
-        result_layout.addWidget(self.result_pane)
+        self.result_area = zFlowScrollArea()
+        self.result_area.setWidgetResizable(True)
+        self.result_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.result_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        result_layout = zQVBoxLayout()
+        result_layout.addWidget(self.result_area)
         self.result_group.setLayout(result_layout)
         # info area
         self.info_group = zQGroupBox('Kanji Info:')
@@ -365,21 +640,108 @@ class kdMainWindow(QDialog):
         self.info_pane.kanji_click.connect(self.kanji_click)
         self.info_pane.setReadOnly(True)
         self.info_pane.setText('')
-        info_layout = zQVBoxLayout()
-        info_layout.addWidget(self.info_pane)
+        self.info_hist = zFlowScrollArea()
+        self.info_hist.setWidgetResizable(True)
+        self.info_hist.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.info_hist.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        info_layout = zQHBoxLayout()
+        info_layout.addWidget(self.info_pane, 7)
+        info_layout.addWidget(self.info_hist, 1)
         self.info_group.setLayout(info_layout)
         # set up main window layout
         main_layout = zQVBoxLayout(self)
-        #main_layout.addWidget(menubar)
         main_layout.addWidget(self.opt_group, 1)
-        main_layout.addWidget(self.result_group, 1)
-        main_layout.addWidget(self.info_group, 1000)
-        QShortcut('Ctrl+Q', self).activated.connect(lambda: self.closeEvent(None))
-        QShortcut('Ctrl+W', self).activated.connect(lambda: self.closeEvent(None))
+        main_layout.addWidget(self.result_group, 20)
+        main_layout.addSpacing(10)
+        main_layout.addWidget(self.info_group, 40)
 
     def show_error(self, msg=''):
         msg = '<span style="color:red;">%s</span>\n' % msg
         self.info_pane.setHtml(self.info_pane.toHtml() + msg)
+
+    def show_radlist(self):
+        if not self.radlist:
+            self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled)
+        self.radlist.show()
+        self.radlist.activateWindow()
+
+    def closeEvent(self, event=None):
+        if self.radlist:
+            self.radlist.destroy()
+        super().closeEvent(event)
+        die()
+
+    def stroke_search_toggle(self):
+        en = self.stroke_search_check.isChecked()
+        self.stroke_search_num.setEnabled(en)
+        self.stroke_search_tol_label.setEnabled(en)
+        self.stroke_search_tol.setEnabled(en)
+        self.update_search()
+
+    def rad_search_toggle(self):
+        en = self.rad_search_check.isChecked()
+        self.rad_search_box.setEnabled(en)
+        self.rad_search_clearbtn.setEnabled(en)
+        self.rad_search_listbtn.setEnabled(en)
+        self.update_search()
+
+    def on_search_edit(self):
+        if self.radlist:
+            rads = self.rad_search_box.lineEdit().text()
+            self.radlist.update(rads)
+
+    def on_radical_toggled(self, btn):
+        rads = self.rad_search_box.lineEdit().text()
+        r = btn.text()[0]
+        if btn.isChecked() and not r in rads:
+            rads += r
+        else:
+            rads = rads.replace(r, '')
+        self.rad_search_box.lineEdit().setText(rads)
+        self.update_search()
+
+    def on_result_clicked(self, btn):
+        self.show_info(btn.text())
+        btn = zKanjiButton(btn.text())
+        btn.click_action = self.on_hist_clicked
+        self.info_hist.insert(btn)
+
+    def on_hist_clicked(self, btn):
+        self.show_info(btn.text())
+
+    def update_search(self):
+        sets = []
+        # add kanji set based on stroke count
+        if self.stroke_search_check.isChecked():
+            strokes = self.stroke_search_num.value()
+            tolerance = self.stroke_search_tol.value()
+            sets.append(set(_s2kanji(strokes, tolerance)))
+        # add kanji set for each radical
+        if self.rad_search_check.isChecked():
+            for rad in self.rad_search_box.lineEdit().text():
+                sets.append(set(_rad2k(rad)[1]))
+        # get intersection of all kanji sets
+        res = {}
+        if len(sets) > 0:
+            res = sets[0]
+            for s in sets[1:]:
+                res = res.intersection(s)
+        # update search results pane
+        self.result_group.setTitle('Search Results: %d' % len(res))
+        self.result_area.clear()
+        QApplication.processEvents()
+        rads = ''
+        tiles = []
+        for r in res:
+            btn = zKanjiButton(r)
+            btn.click_action = self.on_result_clicked
+            tiles.append(btn)
+            if self.radlist:
+                rads += _k2rad(r)
+        self.result_area.fill(tiles)
+        # update list of possible radicals
+        if self.radlist:
+            self.radlist.set_avail(set(rads) if rads else None)
 
     def show_info(self, kanji=''):
         if not self.dic_ok:
