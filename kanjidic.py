@@ -205,7 +205,9 @@ def _kanjidic_load(dict_fname):
                     line = re_tags.sub('', line, 1)
                 for t in tlist:
                     for k in ktable:
-                        if t[:len(k[0])] == k[0]:
+                        # if a tag appears more than once the first one wins,
+                        # e.g. 'S<num>' (stroke count)
+                        if t[:len(k[0])] == k[0] and not info[k[1]]:
                             info[k[1]] = t[len(k[0]):]
                             break
                 # get readings (i.e. all that's left)
