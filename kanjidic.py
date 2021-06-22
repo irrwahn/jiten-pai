@@ -502,12 +502,12 @@ class zRadicalButton(zKanjiButton):
 class kdRadicalList(QDialog):
     btns = []
 
-    def __init__(self, *args, toggle_action=None, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, **kwargs):
+    def __init__(self, *args, toggle_action=None, geo=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.toggle_action = toggle_action
-        self._init_ui()
+        self._init_ui(geo)
 
-    def _init_ui(self):
+    def _init_ui(self, geo):
         self.setWindowTitle('Radical List')
         self.layout = QGridLayout(self)
         self.layout.setSpacing(0)
@@ -523,7 +523,10 @@ class kdRadicalList(QDialog):
             self._add_widget(sep)
             for rad in _srad[stroke]:
                 self._add_widget(zRadicalButton(rad))
-        self.resize(600, 600)
+        if geo is not None:
+            self.setGeometry(geo)
+        else:
+            self.resize(600, 600)
         QShortcut('Ctrl+Q', self).activated.connect(lambda: self.closeEvent(None))
         QShortcut('Ctrl+W', self).activated.connect(lambda: self.closeEvent(None))
 
@@ -671,7 +674,9 @@ class kdMainWindow(QDialog):
 
     def show_radlist(self):
         if not self.radlist:
-            self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled)
+            x, y, w, h = self.geometry().getRect()
+            geo = QRect(x + w, y, min(w, 600), max(h, 600))
+            self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled, geo=geo)
         self.radlist.show()
         self.radlist.activateWindow()
 
