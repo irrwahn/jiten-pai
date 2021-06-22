@@ -519,7 +519,7 @@ class kdRadicalList(QDialog):
                 continue
             sep = zRadicalButton(str(stroke))
             sep.setEnabled(False)
-            sep.setFlat(True)
+            sep.setStyleSheet('background-color: #ffffff; border: none;')
             self._add_widget(sep)
             for rad in _srad[stroke]:
                 self._add_widget(zRadicalButton(rad))
