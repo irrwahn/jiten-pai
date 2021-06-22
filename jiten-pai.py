@@ -1176,7 +1176,7 @@ class jpMainWindow(QMainWindow):
 
     def kanjidic(self, kanji=''):
         if not self.kanji_dlg:
-            self.kanji_dlg = kdMainWindow(self)
+            self.kanji_dlg = kdMainWindow(parent=self)
             self.kanji_dlg.kanji_click.connect(self.kanjidic_clicked)
         self.kanji_dlg.show_info(kanji)
         self.kanji_dlg.showNormal()

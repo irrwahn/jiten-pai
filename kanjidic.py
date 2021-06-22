@@ -530,8 +530,9 @@ class kdMainWindow(QDialog):
     kanji_click = pyqtSignal(str)
     dic_ok = True
 
-    def __init__(self, *args, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, **kwargs):
+    def __init__(self, *args, parent=None, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, **kwargs):
         super().__init__(*args, **kwargs)
+        self._parent = parent
         self.setModal(False)
         self.setParent(None, self.windowFlags() & ~Qt.WindowStaysOnTopHint)
         self.init_cfg()
@@ -556,7 +557,6 @@ class kdMainWindow(QDialog):
         self.rad_search_check.setChecked(False)
         QShortcut('Ctrl+Q', self).activated.connect(lambda: self.close())
         QShortcut('Ctrl+W', self).activated.connect(lambda: self.close())
-        QShortcut('Esc', self).activated.connect(lambda: self.close())
 
     def init_cfg(self):
         _load_cfg()
@@ -632,6 +632,10 @@ class kdMainWindow(QDialog):
         main_layout.addSpacing(10)
         main_layout.addWidget(self.info_group, 40)
 
+    def keyPressEvent(self, event):
+        if event.key() != Qt.Key_Escape or self._parent:
+            super().keyPressEvent(event)
+
     def show_error(self, msg=''):
         msg = '<span style="color:red;">%s</span>\n' % msg
         self.info_pane.setHtml(self.info_pane.toHtml() + msg)
@@ -644,10 +648,10 @@ class kdMainWindow(QDialog):
         self.radlist.show()
         self.radlist.activateWindow()
 
-    def closeEvent(self, event):
+    def reject(self):
         if self.radlist:
             self.radlist.close()
-        event.accept()
+        super().reject()
 
     def stroke_search_toggle(self):
         en = self.stroke_search_check.isChecked()
