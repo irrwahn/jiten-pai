@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
 
-_KANJIDIC_VERSION = '0.0.9'
+_KANJIDIC_VERSION = '0.0.10'
 _KANJIDIC_NAME = 'KanjiDic'
 _KANJIDIC_DIR = 'jiten-pai'
 _KANJIDIC_RADK = 'radkfile.utf8'

@@ -13,7 +13,7 @@ See `LICENSE` file for more information.
 """
 
 
-_JITENPAI_VERSION = '0.0.9'
+_JITENPAI_VERSION = '0.0.10'
 _JITENPAI_NAME = 'Jiten-pai'
 _JITENPAI_DIR = 'jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'

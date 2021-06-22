@@ -26,5 +26,5 @@ Phase III
 
 Phase IV
 --------
-[ ] Kanji-Dic
+[x] Kanji-Dic
 
