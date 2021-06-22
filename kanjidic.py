@@ -724,9 +724,14 @@ class kdMainWindow(QDialog):
         if not self.dic_ok:
             return
         if kanji:
+            # insert into history
             btn = zKanjiButton(kanji)
             btn.click_action = self.on_kanji_btn_clicked
             self.info_hist.insert_top_uniq(btn)
+            self.info_hist.verticalScrollBar().setValue(0)
+            # limit history length
+            while self.info_hist.widget().layout().takeAt(10):
+                pass
         info = ['']
         res = _kanjidic_lookup(kanji)
         nfmt = '<div style="font-family:%s;font-size:%.1fpt">' % (cfg['nfont'], cfg['nfont_sz'])
