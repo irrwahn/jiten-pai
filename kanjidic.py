@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
 
+"""
+kanjidic.py
+
+This file is part of Jiten-pai.
+
+Copyright (c) 2021 Urban Wallasch <irrwahn35@freenet.de>
+
+Contributors:
+    volpol
+
+Jiten-pai is distributed under the Modified ("3-clause") BSD License.
+See `LICENSE` file for more information.
+"""
+
+
 import io
 import sys
 import os
