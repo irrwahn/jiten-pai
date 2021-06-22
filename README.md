@@ -21,7 +21,7 @@ the [Electronic Dictionary Research and Development Group](http://www.edrdg.org/
     * download file, then unpack and convert to UTF-8:
       > `zcat edict2.gz | recode EUC-JP..UTF-8 > edict2`
     * install in Jiten-pai using the Edit->Preferences dialog
-    * **HINT:** In case any of the `zcat` or `recode` utilities are not available,
+    * **HINT:** In case the `zcat` or `recode` utilities are not available,
       the included simple transcoding utility can be used instead, e.g.:
 ```
             eucjp_to_utf8.py edict2.gz edict2
@@ -74,14 +74,10 @@ dictionary copyright information and licensing terms.
     Without these files verb de-inflection and radical search, respectively,
     will not be available.
 
-* ... @@@ ToDo
-
 
 ## Known issues
 
-* KanjiDic is only partially implemented.
-
-* ... @@@ ToDo
+* *TBD*
 
 
 ## License
@@ -94,7 +90,7 @@ Jiten-pai incorporates parts taken from other projects, namely:
 * VCONJ verb de-inflection rule file adapted from [Gjiten](http://gjiten.sourceforge.net/);
   Copyright (c) 1999-2005 Botond Botyanszki; GNU General Public License v2.0
 
-* RADKFILE and KRADFILE radical cross-reference adapted from
+* RADKFILE and KRADFILE Kanji-Radical cross-reference adapted from
   [The KRADFILE/RADKFILE Project](http://www.edrdg.org/krad/kradinf.html);
   Copyright (c) James William BREEN and The Electronic Dictionary Research
   and Development Group; Creative Commons Attribution-ShareAlike Licence (V3.0)
