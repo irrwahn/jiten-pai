@@ -1310,16 +1310,18 @@ class jpMainWindow(QMainWindow):
         if cfg['deinflect'] and mode == ScanMode.JAP and _vc_loaded:
             inflist = _vc_deinflect(term)
         # perform lookup
+        rdiff = 0
         for d in dics:
             ok = True
             if len(dics) > 1:
                 result.append(['#', d[0]])
+                rdiff -= 1
             # search de-inflected verbs
             if len(inflist) > 0:
                 r, ok = self._search_deinflected(inflist, d[1], mode, limit)
                 self._search_show_progress()
                 result.extend(r)
-                limit -= len(r)
+                limit -= (len(r) + rdiff)
                 if limit <= 0:
                     break
                 if not ok:
@@ -1332,7 +1334,7 @@ class jpMainWindow(QMainWindow):
                 r, ok = dict_lookup(d[1], s_term, mode, limit)
                 self._search_show_progress()
                 result.extend(r)
-                limit -= len(r)
+                limit -= (len(r) + rdiff)
                 if not ok:
                     self._search_show_dict_error(d[0])
                 # relax search options
@@ -1344,7 +1346,7 @@ class jpMainWindow(QMainWindow):
                 break
         # report results
         rlen = len(result)
-        self.result_group.setTitle('Search results: %d%s' % (rlen, '+' if rlen>=slimit else ''))
+        self.result_group.setTitle('Search results: %d%s' % (rlen + rdiff, '+' if rlen>=slimit else ''))
         QApplication.processEvents()
         # format result
         if rlen > cfg['hardlimit'] / 2:
