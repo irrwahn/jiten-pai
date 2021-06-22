@@ -308,6 +308,10 @@ class zQTextEdit(QTextEdit):
             self.app.restoreOverrideCursor()
 
     def mouseMoveEvent(self, event):
+        global _standalone
+        if _standalone:
+            super().mouseMoveEvent(event)
+            return
         pos = event.pos()
         pos.setX(pos.x() - 15)
         old_tcur = self.textCursor()
@@ -548,6 +552,9 @@ class kdMainWindow(QDialog):
     def __init__(self, *args, parent=None, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, **kwargs):
         super().__init__(*args, **kwargs)
         self._parent = parent
+        if parent:
+            global _standalone
+            _standalone = False
         self.setModal(False)
         self.setParent(None, self.windowFlags() & ~Qt.WindowStaysOnTopHint)
         self.init_cfg()
@@ -788,6 +795,8 @@ class kdMainWindow(QDialog):
 # main function
 
 def _main():
+    global _standalone
+    _standalone = True
     kanji = sys.argv[1] if len(sys.argv) > 1 else ''
     os.environ['QT_LOGGING_RULES'] = 'qt5ct.debug=false'
     app = QApplication(sys.argv)
