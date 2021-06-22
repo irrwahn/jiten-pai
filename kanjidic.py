@@ -559,6 +559,7 @@ class kdMainWindow(QDialog):
         self.setParent(None, self.windowFlags() & ~Qt.WindowStaysOnTopHint)
         self.init_cfg()
         self.init_ui(title)
+        self.clipboard = QApplication.clipboard()
         QApplication.processEvents()
         # load radkfile, kradfile, kanjidic
         if not _rad_load():
@@ -579,6 +580,9 @@ class kdMainWindow(QDialog):
         self.rad_search_check.setChecked(False)
         QShortcut('Ctrl+Q', self).activated.connect(lambda: self.close())
         QShortcut('Ctrl+W', self).activated.connect(lambda: self.close())
+        QShortcut('Ctrl+C', self).activated.connect(self.kbd_copy)
+        QShortcut('Ctrl+V', self).activated.connect(self.kbd_paste)
+        QShortcut('Return', self.rad_search_box).activated.connect(self.update_search)
 
     def init_cfg(self):
         _load_cfg()
@@ -658,6 +662,15 @@ class kdMainWindow(QDialog):
         if event.key() != Qt.Key_Escape or self._parent:
             super().keyPressEvent(event)
 
+    def kbd_copy(self):
+        self.clipboard.setText(self.info_pane.textCursor().selectedText())
+
+    def kbd_paste(self):
+        if self.rad_search_check.isChecked():
+            self.rad_search_box.lineEdit().setText(self.clipboard.text())
+            self.rad_search_box.setFocus()
+            self.update_search()
+
     def show_error(self, msg=''):
         msg = '<span style="color:red;">%s</span>\n' % msg
         self.info_pane.setHtml(self.info_pane.toHtml() + msg)
@@ -713,6 +726,18 @@ class kdMainWindow(QDialog):
         self.show_info(btn.text())
 
     def update_search(self):
+        rads = ''
+        if self.rad_search_check.isChecked():
+            rads = self.rad_search_box.lineEdit().text().strip()
+            if len(rads):
+                # save to history
+                self.rad_search_box.lineEdit().setText(rads)
+                for i in range(self.rad_search_box.count()):
+                    if self.rad_search_box.itemText(i) == rads:
+                        self.rad_search_box.removeItem(i)
+                        break
+                self.rad_search_box.insertItem(0, rads)
+                self.rad_search_box.setCurrentIndex(0)
         sets = []
         # add kanji set based on stroke count
         if self.stroke_search_check.isChecked():
@@ -720,9 +745,8 @@ class kdMainWindow(QDialog):
             tolerance = self.stroke_search_tol.value()
             sets.append(set(_s2kanji(strokes, tolerance)))
         # add kanji set for each radical
-        if self.rad_search_check.isChecked():
-            for rad in self.rad_search_box.lineEdit().text():
-                sets.append(set(_rad2k(rad)[1]))
+        for rad in rads:
+            sets.append(set(_rad2k(rad)[1]))
         # get intersection of all kanji sets
         res = {}
         if len(sets) > 0:
