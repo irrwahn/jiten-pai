@@ -593,6 +593,7 @@ class kdMainWindow(QDialog):
         self.rad_search_check.setChecked(False)
         QShortcut('Ctrl+Q', self).activated.connect(lambda: self.close())
         QShortcut('Ctrl+W', self).activated.connect(lambda: self.close())
+        QShortcut('Esc', self).activated.connect(lambda: self.close())
 
     def init_cfg(self):
         _load_cfg()
