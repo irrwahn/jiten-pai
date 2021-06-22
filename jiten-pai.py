@@ -742,7 +742,7 @@ class prefDialog(QDialog):
         kdic_layout.addWidget(self.kdic_button)
         kdic_layout.addSpacing(10)
         # dicts
-        dicts_group = zQGroupBox('Dictionaries')
+        dicts_group = zQGroupBox('Word Dictionaries')
         self.dict_list = QTreeWidget()
         self.dict_list.setAlternatingRowColors(True)
         self.dict_list.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
