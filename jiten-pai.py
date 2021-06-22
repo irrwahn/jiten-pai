@@ -67,15 +67,13 @@ class ScanMode(enum.Enum):
 # configuration
 
 cfg = {
-    'kanjidic': '/usr/share/gjiten/dics/kanjidic',
+    'kanjidic': '/usr/local/share/jiten-pai/dics/kanjidic',
     'dicts': [
-        ['edict', '/usr/share/gjiten/dics/edict'],
-        ['enamdict', '/usr/share/gjiten/dics/enamdict'],
+        ['edict2', '/usr/local/share/jiten-pai/dics/edict2'],
     ],
     'dict_idx': 0,
     'dict_all': False,
     'limit': 100,
-    'hardlimit': 10000,
     'do_limit': True,
     'auto_adj': True,
     'jap_opt': [True, False, False, False],
@@ -87,10 +85,11 @@ cfg = {
     'lfont_sz': 24.0,
     'hl_col': 'blue',
     'deinflect': False,
+    # saved, but not editable from GUI:
+    'hardlimit': 10000,
     'max_hist': 12,
     'history': [],
-
-    # run-time only, not saved:
+    # not saved, run-time only:
     'cfgfile': None,
 }
 

@@ -66,7 +66,7 @@ def _get_dfile_path(fname, mode=os.R_OK):
 # configuration
 
 cfg = {
-    'kanjidic': '/usr/share/gjiten/dics/kanjidic',
+    'kanjidic': '/usr/local/share/jiten-pai/dics/kanjidic',
     'nfont': 'sans',
     'nfont_sz': 12.0,
     'lfont': 'IPAPMincho',
