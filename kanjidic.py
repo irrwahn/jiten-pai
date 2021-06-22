@@ -245,16 +245,16 @@ def _kanjidic_lookup(kanji):
         res = {}
     return res
 
-def _s2kanji(strokes, tolerance=0):
-    min_strok = strokes - tolerance
-    max_strok = strokes + tolerance
+def _s2kanji(min_strokes, max_strokes=-1):
+    if max_strokes < 0:
+        max_strokes = min_strokes
     res = ''
     for k, v in _kanjidic.items():
         try:
             s = int(v['strokes'])
         except:
             continue
-        if min_strok <= s <= max_strok:
+        if min_strokes <= s <= max_strokes:
             res += k
     return res
 
@@ -308,10 +308,6 @@ class zQTextEdit(QTextEdit):
             self.app.restoreOverrideCursor()
 
     def mouseMoveEvent(self, event):
-        global _standalone
-        if _standalone:
-            super().mouseMoveEvent(event)
-            return
         pos = event.pos()
         pos.setX(pos.x() - 15)
         old_tcur = self.textCursor()
@@ -468,8 +464,6 @@ class zRadicalButton(zKanjiButton):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setCheckable(True)
-        self.setStyleSheet(None)
-        self.setContentsMargins(QMargins(0,0,0,0))
         self.toggle_action = None
         self.toggled.connect(self._toggle)
 
@@ -509,8 +503,8 @@ class kdRadicalList(QDialog):
             self.setGeometry(geo)
         else:
             self.resize(600, 600)
-        QShortcut('Ctrl+Q', self).activated.connect(lambda: self.closeEvent(None))
-        QShortcut('Ctrl+W', self).activated.connect(lambda: self.closeEvent(None))
+        QShortcut('Ctrl+Q', self).activated.connect(self.close)
+        QShortcut('Ctrl+W', self).activated.connect(self.close)
 
     def _add_widget(self, w):
         w.toggle_action = self.toggle_action
@@ -548,6 +542,7 @@ class kdRadicalList(QDialog):
 class kdMainWindow(QDialog):
     kanji_click = pyqtSignal(str)
     dic_ok = True
+    radlist = None
 
     def __init__(self, *args, parent=None, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, **kwargs):
         super().__init__(*args, **kwargs)
@@ -558,8 +553,13 @@ class kdMainWindow(QDialog):
         self.setModal(False)
         self.setParent(None, self.windowFlags() & ~Qt.WindowStaysOnTopHint)
         self.init_cfg()
-        self.init_ui(title)
         self.clipboard = QApplication.clipboard()
+        self.init_ui(title)
+        QShortcut('Ctrl+Q', self).activated.connect(lambda: self.close())
+        QShortcut('Ctrl+W', self).activated.connect(lambda: self.close())
+        QShortcut('Ctrl+C', self).activated.connect(self.kbd_copy)
+        QShortcut('Ctrl+V', self).activated.connect(self.kbd_paste)
+        QShortcut('Return', self.rad_search_box).activated.connect(self.update_search)
         QApplication.processEvents()
         # load radkfile, kradfile, kanjidic
         if not _rad_load():
@@ -568,21 +568,6 @@ class kdMainWindow(QDialog):
         if not _kanjidic_load(cfg['kanjidic']):
             self.show_error('Error loading kanjidic!')
             self.dic_ok = False
-        self.radlist = None
-        # initialize search options
-        self.stroke_search_check.toggled.connect(self.stroke_search_toggle)
-        self.stroke_search_num.valueChanged.connect(self.update_search)
-        self.stroke_search_tol.valueChanged.connect(self.update_search)
-        self.stroke_search_check.setChecked(True)
-        self.stroke_search_check.setChecked(False)
-        self.rad_search_check.toggled.connect(self.rad_search_toggle)
-        self.rad_search_check.setChecked(True)
-        self.rad_search_check.setChecked(False)
-        QShortcut('Ctrl+Q', self).activated.connect(lambda: self.close())
-        QShortcut('Ctrl+W', self).activated.connect(lambda: self.close())
-        QShortcut('Ctrl+C', self).activated.connect(self.kbd_copy)
-        QShortcut('Ctrl+V', self).activated.connect(self.kbd_paste)
-        QShortcut('Return', self.rad_search_box).activated.connect(self.update_search)
 
     def init_cfg(self):
         _load_cfg()
@@ -591,7 +576,7 @@ class kdMainWindow(QDialog):
         #jpIcon()
         self.setWindowTitle(title)
         #self.setWindowIcon(jpIcon.jitenpai)
-        self.resize(800, 600)
+        self.resize(720, 600)
         self.clipboard = QApplication.clipboard()
         # search options
         self.opt_group = zQGroupBox('Kanji Search Options:')
@@ -599,7 +584,7 @@ class kdMainWindow(QDialog):
         stroke_search_layout = zQHBoxLayout()
         self.stroke_search_check = QCheckBox('Search By &Strokes:')
         self.stroke_search_num = QSpinBox()
-        self.stroke_search_num.setRange(1,30)
+        self.stroke_search_num.setRange(1, 30)
         self.stroke_search_tol_label = QLabel('+/-')
         self.stroke_search_tol_label.setAlignment(Qt.AlignRight)
         self.stroke_search_tol = QSpinBox()
@@ -639,8 +624,12 @@ class kdMainWindow(QDialog):
         self.result_group.setLayout(result_layout)
         # info area
         self.info_group = zQGroupBox('Kanji Info:')
-        self.info_pane = zQTextEdit()
-        self.info_pane.kanji_click.connect(self.kanji_click)
+        global _standalone
+        if not _standalone:
+            self.info_pane = zQTextEdit()
+            self.info_pane.kanji_click.connect(self.kanji_click)
+        else:
+            self.info_pane = QTextEdit()
         self.info_pane.setReadOnly(True)
         self.info_pane.setText('')
         self.info_hist = zFlowScrollArea()
@@ -657,6 +646,20 @@ class kdMainWindow(QDialog):
         main_layout.addWidget(self.result_group, 20)
         main_layout.addSpacing(10)
         main_layout.addWidget(self.info_group, 40)
+        # initialize search options
+        self.stroke_search_check.toggled.connect(self.stroke_search_toggle)
+        self.stroke_search_num.valueChanged.connect(self.update_search)
+        self.stroke_search_tol.valueChanged.connect(self.update_search)
+        self.stroke_search_check.setChecked(True)
+        self.stroke_search_check.setChecked(False)
+        self.rad_search_check.toggled.connect(self.rad_search_toggle)
+        self.rad_search_check.setChecked(True)
+        self.rad_search_check.setChecked(False)
+
+    def reject(self):
+        if self.radlist:
+            self.radlist.close()
+        super().reject()
 
     def keyPressEvent(self, event):
         if event.key() != Qt.Key_Escape or self._parent:
@@ -680,13 +683,10 @@ class kdMainWindow(QDialog):
             x, y, w, h = self.geometry().getRect()
             geo = QRect(x + w, y, min(w, 600), max(h, 600))
             self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled, geo=geo)
+            self.on_search_edit()
+            self.update_search()
         self.radlist.show()
         self.radlist.activateWindow()
-
-    def reject(self):
-        if self.radlist:
-            self.radlist.close()
-        super().reject()
 
     def stroke_search_toggle(self):
         en = self.stroke_search_check.isChecked()
@@ -743,7 +743,7 @@ class kdMainWindow(QDialog):
         if self.stroke_search_check.isChecked():
             strokes = self.stroke_search_num.value()
             tolerance = self.stroke_search_tol.value()
-            sets.append(set(_s2kanji(strokes, tolerance)))
+            sets.append(set(_s2kanji(strokes - tolerance, strokes + tolerance)))
         # add kanji set for each radical
         for rad in rads:
             sets.append(set(_rad2k(rad)[1]))
@@ -757,18 +757,18 @@ class kdMainWindow(QDialog):
         self.result_group.setTitle('Search Results: %d' % len(res))
         self.result_area.clear()
         QApplication.processEvents()
-        rads = ''
+        av_rads = ''
         tiles = []
         for r in res:
             btn = zKanjiButton(r)
             btn.click_action = self.on_kanji_btn_clicked
             tiles.append(btn)
             if self.radlist:
-                rads += _k2rad(r)
+                av_rads += _k2rad(r)
         self.result_area.fill(tiles)
         # update list of possible radicals
         if self.radlist:
-            self.radlist.set_avail(set(rads) if rads else None)
+            self.radlist.set_avail(set(av_rads) if rads or av_rads else None)
 
     def show_info(self, kanji=''):
         if not self.dic_ok:
