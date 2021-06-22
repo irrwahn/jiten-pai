@@ -63,6 +63,14 @@ dictionary copyright information and licensing terms.
 * If the search term contains any Katakana or Hiragana, Jiten-pai will
   always report matches for both syllabaries. This is intentional.
 
+* The word search supports Python regular expression syntax to allow for
+  less strict queries. Consequently, backslash-escaping is required when,
+  for whatever reason, searching verbatim for regex special characters
+  like '.', '(', ')', etc.  Using the '^' and '$' regex anchors is
+  strongly discouraged. Equivalent functionality is already provided by
+  the various search options. (If this paragraph is all Greek to you,
+  chances are you can safely ignore it.)
+
 * During startup Jiten-pai will look for the `vconj.utf8` verb conjugation
   file as well as the `kradfile.utf8` and `radkfile.utf8` Kanji radical
   cross-reference files in the following directories, in the given order:
