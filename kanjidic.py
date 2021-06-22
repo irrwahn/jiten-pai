@@ -331,10 +331,10 @@ class zFlowLayout(QLayout):
     def addItem(self, item):
         self.itemList.append(item)
 
-    def rotate_right(self, n):
-        l = len(self.itemList)
-        if l > n:
-            self.itemList = self.itemList[-n:] + self.itemList[:-n]
+    def insertWidgetTop(self, widget):
+        self.addWidget(widget)
+        if len(self.itemList) > 1:
+            self.itemList = self.itemList[-1:] + self.itemList[:-1]
 
     def count(self):
         return len(self.itemList)
@@ -437,21 +437,26 @@ class zFlowScrollArea(QScrollArea):
         self.clear()
         pane = QWidget()
         self.setWidget(pane)
-        layout = zFlowLayout(self.widget(), 0, 0, 0)
+        layout = zFlowLayout(pane, 0, 0, 0)
         layout.setEnabled(False)
         for tl in tiles:
             layout.addWidget(tl)
         layout.setEnabled(True)
         self.setUpdatesEnabled(True)
 
-    def insert(self, w):
+    def insert_top_uniq(self, w):
         self.setUpdatesEnabled(False)
-        if not self.widget():
+        if self.widget():
+            layout = self.widget().layout()
+        else:
             pane = QWidget()
             self.setWidget(pane)
-            layout = zFlowLayout(self.widget(), 0, 0, 0)
-        self.widget().layout().addWidget(w)
-        self.widget().layout().rotate_right(1)
+            layout = zFlowLayout(pane, 0, 0, 0)
+        for idx in range(layout.count()):
+            if layout.itemAt(idx).widget().text() == w.text():
+                layout.takeAt(idx)
+                break
+        layout.insertWidgetTop(w)
         self.setUpdatesEnabled(True)
 
 class zKanjiButton(QPushButton):
@@ -709,13 +714,7 @@ class kdMainWindow(QDialog):
         self.rad_search_box.lineEdit().setText(rads)
         self.update_search()
 
-    def on_result_clicked(self, btn):
-        self.show_info(btn.text())
-        btn = zKanjiButton(btn.text())
-        btn.click_action = self.on_hist_clicked
-        self.info_hist.insert(btn)
-
-    def on_hist_clicked(self, btn):
+    def on_kanji_btn_clicked(self, btn):
         self.show_info(btn.text())
 
     def update_search(self):
@@ -743,7 +742,7 @@ class kdMainWindow(QDialog):
         tiles = []
         for r in res:
             btn = zKanjiButton(r)
-            btn.click_action = self.on_result_clicked
+            btn.click_action = self.on_kanji_btn_clicked
             tiles.append(btn)
             if self.radlist:
                 rads += _k2rad(r)
@@ -755,6 +754,10 @@ class kdMainWindow(QDialog):
     def show_info(self, kanji=''):
         if not self.dic_ok:
             return
+        if kanji:
+            btn = zKanjiButton(kanji)
+            btn.click_action = self.on_kanji_btn_clicked
+            self.info_hist.insert_top_uniq(btn)
         info = ['']
         res = _kanjidic_lookup(kanji)
         nfmt = '<div style="font-family:%s;font-size:%.1fpt">' % (cfg['nfont'], cfg['nfont_sz'])
