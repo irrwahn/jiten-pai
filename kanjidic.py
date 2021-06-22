@@ -594,11 +594,6 @@ class kdMainWindow(QDialog):
     def init_cfg(self):
         _load_cfg()
 
-    def search_clear(self):
-        self.rad_search_box.lineEdit().setText('')
-        if self.radlist:
-            self.radlist.set_avail(None)
-
     def init_ui(self, title=''):
         #jpIcon()
         self.setWindowTitle(title)
@@ -629,7 +624,7 @@ class kdMainWindow(QDialog):
         self.rad_search_box.lineEdit().textChanged.connect(self.on_search_edit)
         self.rad_search_box.lineEdit().editingFinished.connect(self.update_search)
         self.rad_search_clearbtn = QPushButton('Clear')
-        self.rad_search_clearbtn.clicked.connect(self.search_clear)
+        self.rad_search_clearbtn.clicked.connect(self.on_search_clear)
         self.rad_search_listbtn = QPushButton('Radical List')
         self.rad_search_listbtn.clicked.connect(self.show_radlist)
         rad_search_layout.addWidget(self.rad_search_check, 1)
@@ -698,6 +693,11 @@ class kdMainWindow(QDialog):
         self.rad_search_clearbtn.setEnabled(en)
         self.rad_search_listbtn.setEnabled(en)
         self.update_search()
+
+    def on_search_clear(self):
+        self.rad_search_box.lineEdit().setText('')
+        if self.radlist:
+            self.radlist.set_avail(None)
 
     def on_search_edit(self):
         if self.radlist:
