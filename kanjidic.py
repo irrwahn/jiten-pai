@@ -387,16 +387,12 @@ class zFlowLayout(QLayout):
         iszhint = self.itemList[0].widget().sizeHint()
         iwidth = iszhint.width()
         iheight = iszhint.height()
-        ngaps = int(right / iwidth)
-        gap = 0 if ngaps < 1 else int((right % iwidth) / ngaps)
         for i in range(self.count()):
             nextX = x + iwidth
             if nextX > right:
                 x = rect.x()
                 y = y + iheight
-                nextX = x + iwidth + gap
-            else:
-                nextX += gap
+                nextX = x + iwidth
             if not testonly:
                 self.itemList[i].setGeometry(QRect(QPoint(x, y), iszhint))
             x = nextX
