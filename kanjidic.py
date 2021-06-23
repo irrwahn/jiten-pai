@@ -514,10 +514,13 @@ class kdRadicalList(QDialog):
                 continue
             sep = zRadicalButton(str(stroke))
             sep.setEnabled(False)
-            sep.setStyleSheet('background-color: #ffffff; border: none;')
+            sep.setStyleSheet('background-color: %s; color: #ffffff; border: none;' % cfg['hl_col'])
+            sep.is_sep = True
             self._add_widget(sep)
             for rad in _srad[stroke]:
-                self._add_widget(zRadicalButton(rad))
+                btn = zRadicalButton(rad)
+                btn.is_sep = False
+                self._add_widget(btn)
         if geo is not None:
             self.setGeometry(geo)
         else:
@@ -547,11 +550,11 @@ class kdRadicalList(QDialog):
     def set_avail(self, avail):
         if avail is None:
             for btn in self.btns:
-                if not btn.isFlat():
+                if not btn.is_sep:
                     btn.setEnabled(True)
         else:
             for btn in self.btns:
-                if not btn.isChecked() and not btn.isFlat():
+                if not btn.isChecked() and not btn.is_sep:
                     btn.setEnabled(btn.text() in avail)
 
 
