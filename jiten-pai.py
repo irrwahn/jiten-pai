@@ -68,9 +68,9 @@ class ScanMode(enum.Enum):
 # configuration
 
 cfg = {
-    'kanjidic': '/usr/local/share/jiten-pai/dics/kanjidic',
+    'kanjidic': '/usr/local/share/jiten-pai/kanjidic',
     'dicts': [
-        ['edict2', '/usr/local/share/jiten-pai/dics/edict2'],
+        ['edict2', '/usr/local/share/jiten-pai/edict2'],
     ],
     'dict_idx': 0,
     'dict_all': False,
