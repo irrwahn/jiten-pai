@@ -474,7 +474,7 @@ class zKanjiButton(QPushButton):
         return QSize(58, 58)
 
     def resizeEvent(self, event):
-        sz = min(self.rect().height(), self.rect().width()) - 8
+        sz = min(self.rect().height(), self.rect().width()) - 6
         font = self.font()
         font.setPixelSize(sz)
         self.setFont(font)
