@@ -1271,7 +1271,7 @@ class jpMainWindow(QMainWindow):
         QApplication.processEvents()
 
     def _search_deinflected(self, inflist, dic, mode, limit):
-        re_isnoun = re.compile(r'\(n)\)')
+        re_isnoun = re.compile(r'\(n\)')
         result = []
         ok = True
         for inf in inflist:
