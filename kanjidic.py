@@ -791,6 +791,7 @@ class kdMainWindow(QDialog):
             tolerance = self.stroke_search_tol.value()
             sets.append(set(_s2kanji(strokes - tolerance, strokes + tolerance)))
         # add kanji set for each radical
+        rads = ''
         if self.rad_search_check.isChecked():
             rads = self.rad_search_box.lineEdit().text().strip()
             if len(rads):
