@@ -681,7 +681,8 @@ class kdMainWindow(QDialog):
     def show_radlist(self):
         if not self.radlist:
             x, y, w, h = self.geometry().getRect()
-            geo = QRect(x + w, y, min(w, 600), max(h, 600))
+            fw = self.frameGeometry().width()
+            geo = QRect(x + fw, y, min(w, 600), max(h, 600))
             self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled, geo=geo)
             self.on_search_edit()
             self.update_search()
