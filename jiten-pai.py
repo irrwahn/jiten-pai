@@ -153,9 +153,9 @@ except Exception as e:
 ############################################################
 # verb de-inflection
 
-_vc_type = dict()
-_vc_deinf = []
-_vc_loaded = False
+_vconj_type = dict()
+_vconj_deinf = []
+_vconj_loaded = False
 
 def _get_dfile_path(fname, mode=os.R_OK):
     cdirs = []
@@ -172,8 +172,8 @@ def _get_dfile_path(fname, mode=os.R_OK):
             return path
     return fname
 
-def _vc_load():
-    global _vc_loaded
+def _vconj_load():
+    global _vconj_loaded
     vcname = _JITENPAI_VCONJ
     if not os.access(vcname, os.R_OK):
         vcname = _get_dfile_path(os.path.join(_JITENPAI_DIR, _JITENPAI_VCONJ), mode=os.R_OK)
@@ -184,24 +184,24 @@ def _vc_load():
             for line in vcfile:
                 match = re_type.match(line)
                 if match:
-                    _vc_type[match.group(1)] = match.group(2)
+                    _vconj_type[match.group(1)] = match.group(2)
                     continue
                 match = re_deinf.match(line)
                 if match:
                     r = re.compile('%s$' % match.group(1))
-                    _vc_deinf.append([r, match.group(1), match.group(2), match.group(3)])
+                    _vconj_deinf.append([r, match.group(1), match.group(2), match.group(3)])
                     continue
-        _vc_loaded = len(_vc_deinf) > 0
+        _vconj_loaded = len(_vconj_deinf) > 0
     except Exception as e:
-        eprint('_vc_load:', vcname, str(e))
+        eprint('_vconj_load:', vcname, str(e))
 
-def _vc_deinflect(verb):
+def _vconj_deinflect(verb):
     inf = []
     blurb = ''
-    for p in _vc_deinf:
+    for p in _vconj_deinf:
         v = p[0].sub(p[2], verb)
         if v != verb:
-            blurb = '%s %s → %s' % (_vc_type[p[3]], p[1], p[2])
+            blurb = '%s %s → %s' % (_vconj_type[p[3]], p[1], p[2])
             inf.append([v, blurb])
     return inf
 
@@ -729,7 +729,7 @@ class prefDialog(QDialog):
         search_group = zQGroupBox('Search Options')
         self.search_deinflect = QCheckBox('&Verb Deinflection (experimental)')
         self.search_deinflect.setChecked(cfg['deinflect'])
-        self.search_deinflect.setEnabled(_vc_loaded)
+        self.search_deinflect.setEnabled(_vconj_loaded)
         search_layout = zQVBoxLayout(search_group)
         search_layout.addWidget(self.search_deinflect)
         search_layout.addSpacing(10)
@@ -1326,8 +1326,8 @@ class jpMainWindow(QMainWindow):
         result = []
         # de-inflect verb
         inflist = []
-        if cfg['deinflect'] and mode == ScanMode.JAP and _vc_loaded:
-            inflist = _vc_deinflect(term)
+        if cfg['deinflect'] and mode == ScanMode.JAP and _vconj_loaded:
+            inflist = _vconj_deinflect(term)
         # perform lookup
         rdiff = 0
         for d in dics:
@@ -1477,7 +1477,7 @@ def _parse_cmdline():
 def main():
     global app
     _load_cfg()
-    _vc_load()
+    _vconj_load()
     cl_args = _parse_cmdline()
     # set up window
     os.environ['QT_LOGGING_RULES'] = 'qt5ct.debug=false'
