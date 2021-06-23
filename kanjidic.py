@@ -838,7 +838,7 @@ class kdMainWindow(QDialog):
                 av_rads += _k2rad(r)
         self.result_area.fill(tiles)
         if len(res) == 1:
-            self.show_info(kanji=list(res)[0])
+            self.show_info(list(res)[0])
         # update list of possible radicals
         if self.radlist:
             self.radlist.set_avail(set(av_rads) if rads or av_rads else None)
