@@ -636,7 +636,7 @@ class dictDialog(QDialog):
         self.name_edit = QLineEdit(name)
         self.name_edit.setMinimumWidth(300)
         self.name_edit.textChanged.connect(self.name_chg)
-        self.path_edit = QPushButton(os.path.basename(path))
+        self.path_edit = QPushButton(path)
         self.path_edit.setStyleSheet("QPushButton {text-align: left; padding: 0.2em;}");
         self.path_edit.setIcon(jpIcon.open)
         self.path_edit.setMinimumWidth(300)
