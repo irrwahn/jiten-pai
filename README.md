@@ -72,7 +72,7 @@ dictionary copyright information and licensing terms.
   chances are you can safely ignore it.)
 
 * During startup Jiten-pai will look for the `vconj.utf8` verb conjugation
-  file as well as the `kradfile.utf8` and `radkfile.utf8` Kanji radical
+  file as well as the `kradfile.utf8` and `radkfile.utf8` kanji radical
   cross-reference files in the following directories, in the given order:
     * `$HOME/.local/share/jiten-pai/`
     * `/usr/local/share/jiten-pai/`
@@ -98,7 +98,7 @@ Jiten-pai incorporates parts taken from other projects, namely:
 * VCONJ verb de-inflection rule file adapted from [Gjiten](http://gjiten.sourceforge.net/);
   Copyright (c) 1999-2005 Botond Botyanszki; GNU General Public License v2.0
 
-* RADKFILE and KRADFILE Kanji-Radical cross-reference adapted from
+* RADKFILE and KRADFILE kanji radical cross-reference adapted from
   [The KRADFILE/RADKFILE Project](http://www.edrdg.org/krad/kradinf.html);
   Copyright (c) James William BREEN and The Electronic Dictionary Research
   and Development Group; Creative Commons Attribution-ShareAlike Licence (V3.0)
