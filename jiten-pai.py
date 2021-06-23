@@ -1110,6 +1110,7 @@ class jpMainWindow(QMainWindow):
         self.search_box_edit_valid = True
         self.search_box.lineEdit().textChanged.connect(lambda t: self.search_onedit(t))
         QShortcut('Return', self.search_box).activated.connect(self.search)
+        QShortcut('Enter', self.search_box).activated.connect(self.search)
         search_button = QPushButton('Search')
         search_button.setDefault(True)
         search_button.setIcon(jpIcon.find)
@@ -1270,7 +1271,7 @@ class jpMainWindow(QMainWindow):
         QApplication.processEvents()
 
     def _search_deinflected(self, inflist, dic, mode, limit):
-        re_isnoun = re.compile(r'\(n\)')
+        re_isnoun = re.compile(r'\(n)\)')
         result = []
         ok = True
         for inf in inflist:
