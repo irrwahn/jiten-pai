@@ -1270,7 +1270,7 @@ class jpMainWindow(QMainWindow):
         QApplication.processEvents()
 
     def _search_deinflected(self, inflist, dic, mode, limit):
-        re_isnoun = re.compile(r'\(n\)')
+        re_consider = re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))')
         result = []
         ok = True
         for inf in inflist:
@@ -1278,8 +1278,8 @@ class jpMainWindow(QMainWindow):
             # perform lookup
             res, ok = dict_lookup(dic, s_term, mode, limit)
             for r in list(res):
-                # drop nouns
-                if re_isnoun.search(r[2]):
+                # reject anything not a verb, or adjective, or ...
+                if not re_consider.search(r[2]):
                     continue
                 # keep the rest with appended inflection info
                 r.append(inf)
