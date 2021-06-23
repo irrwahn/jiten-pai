@@ -1109,8 +1109,7 @@ class jpMainWindow(QMainWindow):
         self.search_box_edit_style = self.search_box.lineEdit().styleSheet()
         self.search_box_edit_valid = True
         self.search_box.lineEdit().textChanged.connect(lambda t: self.search_onedit(t))
-        QShortcut('Return', self.search_box).activated.connect(self.search)
-        QShortcut('Enter', self.search_box).activated.connect(self.search)
+        self.search_box.lineEdit().returnPressed.connect(self.search)
         search_button = QPushButton('Search')
         search_button.setDefault(True)
         search_button.setIcon(jpIcon.find)

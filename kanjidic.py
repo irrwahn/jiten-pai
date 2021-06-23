@@ -578,8 +578,6 @@ class kdMainWindow(QDialog):
         QShortcut('Ctrl+W', self).activated.connect(lambda: self.close())
         QShortcut('Ctrl+C', self).activated.connect(self.kbd_copy)
         QShortcut('Ctrl+V', self).activated.connect(self.kbd_paste)
-        QShortcut('Return', self).activated.connect(self.update_search)
-        QShortcut('Enter', self).activated.connect(self.update_search)
         QApplication.processEvents()
         # load radkfile, kradfile, kanjidic
         if not _rad_load():
@@ -629,6 +627,8 @@ class kdMainWindow(QDialog):
         self.rad_search_box.setEditable(True)
         self.rad_search_box.lineEdit().textChanged.connect(self.on_search_edit)
         self.rad_search_box.lineEdit().textEdited.connect(self.update_search)
+        self.rad_search_box.lineEdit().returnPressed.connect(self.update_search)
+        self.rad_search_box.activated.connect(self.update_search)
         self.rad_search_clearbtn = QPushButton('&Clear')
         self.rad_search_clearbtn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.rad_search_clearbtn.clicked.connect(self.on_search_clear)
@@ -649,6 +649,8 @@ class kdMainWindow(QDialog):
         self.text_search_box.setCurrentIndex(-1)
         self.text_search_box.setEditable(True)
         self.text_search_box.lineEdit().textChanged.connect(self.on_search_edit)
+        self.text_search_box.lineEdit().returnPressed.connect(self.update_search)
+        self.text_search_box.activated.connect(self.update_search)
         self.text_search_clearbtn = QPushButton('&Clear')
         self.text_search_clearbtn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.text_search_clearbtn.clicked.connect(lambda: self.text_search_box.lineEdit().setText(''))
