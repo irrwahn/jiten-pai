@@ -20,6 +20,7 @@ import sys
 import os
 import re
 import json
+from argparse import ArgumentParser, RawTextHelpFormatter
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -544,7 +545,7 @@ class kdMainWindow(QDialog):
     dic_ok = True
     radlist = None
 
-    def __init__(self, *args, parent=None, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, **kwargs):
+    def __init__(self, *args, parent=None, title=_KANJIDIC_NAME + ' ' + _KANJIDIC_VERSION, cl_args=None, **kwargs):
         super().__init__(*args, **kwargs)
         self._parent = parent
         if parent:
@@ -568,6 +569,12 @@ class kdMainWindow(QDialog):
         if not _kanjidic_load(cfg['kanjidic']):
             self.show_error('Error loading kanjidic!')
             self.dic_ok = False
+        # evaluate command line arguments
+        if cl_args is not None:
+            if cl_args.kanji_lookup:
+                self.show_info(cl_args.kanji_lookup)
+            elif cl_args.clip_kanji:
+                self.show_info(self.clipboard.text())
 
     def init_cfg(self):
         _load_cfg()
@@ -821,16 +828,25 @@ class kdMainWindow(QDialog):
 ############################################################
 # main function
 
+def _parse_cmdline():
+    parser = ArgumentParser(
+        formatter_class=RawTextHelpFormatter,
+        description='Jiten-pai kanji dictionary',
+        epilog='\n'
+    )
+    parser.add_argument('-c', '--clip-kanji', action='count', help='look up kanji from clipboard')
+    parser.add_argument('-l', '--kanji-lookup', metavar='KANJI', help='look up KANJI in kanji dictionary')
+    return parser.parse_args()
+
 def _main():
     global _standalone
     _standalone = True
-    kanji = sys.argv[1] if len(sys.argv) > 1 else ''
+    cl_args = _parse_cmdline()
     os.environ['QT_LOGGING_RULES'] = 'qt5ct.debug=false'
     app = QApplication(sys.argv)
     app.setApplicationName(_KANJIDIC_NAME)
-    root = kdMainWindow()
+    root = kdMainWindow(cl_args=cl_args)
     root.show()
-    root.show_info(kanji)
     sys.exit(app.exec_())
 
 if __name__== "__main__":

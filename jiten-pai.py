@@ -35,6 +35,7 @@ import json
 import unicodedata
 import enum
 import base64
+from argparse import ArgumentParser, RawTextHelpFormatter
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -952,9 +953,27 @@ class prefDialog(QDialog):
 class jpMainWindow(QMainWindow):
     kanji_dlg = None
 
-    def __init__(self, *args, title='', **kwargs):
+    def __init__(self, *args, title='', cl_args=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.init_ui(title)
+        # evaluate command line arguments
+        if cl_args is not None:
+            if cl_args.kanjidic:
+                self.kanjidic()
+            elif cl_args.kanji_lookup:
+                self.kanjidic(cl_args.kanji_lookup)
+            elif cl_args.clip_kanji:
+                self.kanjidic(self.clipboard.text())
+            elif cl_args.word_lookup:
+                self.show()
+                self.search_box.lineEdit().setText(cl_args.word_lookup)
+                self.search()
+            elif cl_args.clip_word:
+                self.show()
+                self.kbd_paste()
+                self.search()
+            else:
+                self.show()
 
     def init_ui(self, title=''):
         jpIcon()
@@ -1169,6 +1188,7 @@ class jpMainWindow(QMainWindow):
 
     def kanjidic_clicked(self, kanji=''):
         if kanji:
+            self.show()
             self.search_box.lineEdit().setText(kanji)
             self.activateWindow()
             self.search()
@@ -1441,16 +1461,29 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
 ############################################################
 # main function
 
+def _parse_cmdline():
+    parser = ArgumentParser(
+        formatter_class=RawTextHelpFormatter,
+        description='Jiten-pai Japanese dictionary',
+        epilog='\n'
+    )
+    parser.add_argument('-k', '--kanjidic', action='count', help='start with KanjiDic')
+    parser.add_argument('-c', '--clip-kanji', action='count', help='look up kanji from clipboard')
+    parser.add_argument('-l', '--kanji-lookup', metavar='KANJI', help='look up KANJI in kanji dictionary')
+    parser.add_argument('-w', '--word-lookup', metavar='WORD', help='look up WORD in word dictionary')
+    parser.add_argument('-v', '--clip-word', action='count', help='look up word from clipboard')
+    return parser.parse_args()
+
 def main():
     global app
     _load_cfg()
     _vc_load()
+    cl_args = _parse_cmdline()
     # set up window
     os.environ['QT_LOGGING_RULES'] = 'qt5ct.debug=false'
     app = QApplication(sys.argv)
     app.setApplicationName(_JITENPAI_NAME)
-    root = jpMainWindow(title=_JITENPAI_NAME + ' ' + _JITENPAI_VERSION)
-    root.show()
+    root = jpMainWindow(title=_JITENPAI_NAME + ' ' + _JITENPAI_VERSION, cl_args=cl_args)
     die(app.exec_())
 
 # run application
