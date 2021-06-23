@@ -464,13 +464,14 @@ class zKanjiButton(QPushButton):
         self.setContentsMargins(QMargins(0,0,0,0))
         self.click_action = None
         self.clicked.connect(self._click)
+        self.setFont(QFont(cfg['lfont']))
 
     def _click(self):
         if self.click_action:
             self.click_action(self)
 
     def sizeHint(self):
-        return QSize(64, 64)
+        return QSize(58, 58)
 
     def resizeEvent(self, event):
         sz = min(self.rect().height(), self.rect().width()) - 8
