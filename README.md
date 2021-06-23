@@ -83,6 +83,27 @@ dictionary copyright information and licensing terms.
     will not be available.
 
 
+## Command Line
+
+Jiten-pai supports a few command line options which might come in handy
+for workflow integration.  They should be fairly self explaining:
+```
+    usage: jiten-pai.py [-h] [-k] [-c] [-v] [-l KANJI] [-w WORD]
+
+    Jiten-pai Japanese dictionary
+
+    optional arguments:
+      -h, --help                      show this help message and exit
+      -k, --kanjidic                  start with KanjiDic
+      -c, --clip-kanji                look up kanji from clipboard
+      -v, --clip-word                 look up word from clipboard
+      -l KANJI, --kanji-lookup KANJI  look up KANJI in kanji dictionary
+      -w WORD, --word-lookup WORD     look up WORD in word dictionary
+
+    Only one of these options should be used at a time.
+```
+
+
 ## Known issues
 
 * *TBD*

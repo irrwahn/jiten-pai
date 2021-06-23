@@ -895,9 +895,9 @@ class kdMainWindow(QDialog):
 
 def _parse_cmdline():
     parser = ArgumentParser(
-        formatter_class=RawTextHelpFormatter,
+        formatter_class=lambda prog: RawTextHelpFormatter(prog, max_help_position=40),
         description='Jiten-pai kanji dictionary',
-        epilog='\n'
+        epilog='Only one of these options should be used at a time.\n'
     )
     parser.add_argument('-c', '--clip-kanji', action='count', help='look up kanji from clipboard')
     parser.add_argument('-l', '--kanji-lookup', metavar='KANJI', help='look up KANJI in kanji dictionary')

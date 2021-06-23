@@ -1463,15 +1463,15 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
 
 def _parse_cmdline():
     parser = ArgumentParser(
-        formatter_class=RawTextHelpFormatter,
+        formatter_class=lambda prog: RawTextHelpFormatter(prog, max_help_position=40),
         description='Jiten-pai Japanese dictionary',
-        epilog='\n'
+        epilog='Only one of these options should be used at a time.\n'
     )
     parser.add_argument('-k', '--kanjidic', action='count', help='start with KanjiDic')
     parser.add_argument('-c', '--clip-kanji', action='count', help='look up kanji from clipboard')
+    parser.add_argument('-v', '--clip-word', action='count', help='look up word from clipboard')
     parser.add_argument('-l', '--kanji-lookup', metavar='KANJI', help='look up KANJI in kanji dictionary')
     parser.add_argument('-w', '--word-lookup', metavar='WORD', help='look up WORD in word dictionary')
-    parser.add_argument('-v', '--clip-word', action='count', help='look up word from clipboard')
     return parser.parse_args()
 
 def main():
