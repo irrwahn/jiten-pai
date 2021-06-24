@@ -632,13 +632,13 @@ class kdMainWindow(QDialog):
         self.rad_search_box.setMaximumWidth(340)
         self.rad_search_box.setCurrentIndex(-1)
         self.rad_search_box.setEditable(True)
-        self.rad_search_box.lineEdit().textChanged.connect(self.on_search_edit)
-        self.rad_search_box.lineEdit().textEdited.connect(self.update_search)
-        self.rad_search_box.lineEdit().returnPressed.connect(self.update_search)
-        self.rad_search_box.activated.connect(self.update_search)
+        self.rad_search_box.lineEdit().textChanged.connect(self.on_rad_search_edit)
+        self.rad_search_box.lineEdit().textEdited.connect(lambda: self.update_search())
+        self.rad_search_box.lineEdit().returnPressed.connect(lambda: self.update_search(save_rad_hist=True))
+        self.rad_search_box.activated.connect(lambda: self.update_search())
         self.rad_search_clearbtn = QPushButton('&Clear')
         self.rad_search_clearbtn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.rad_search_clearbtn.clicked.connect(self.on_search_clear)
+        self.rad_search_clearbtn.clicked.connect(self.on_rad_search_clear)
         self.rad_search_clearbtn.setDefault(False)
         self.rad_search_clearbtn.setAutoDefault(False)
         self.rad_search_listbtn = QPushButton('&Radical List')
@@ -659,12 +659,11 @@ class kdMainWindow(QDialog):
         self.text_search_box.setMaximumWidth(340)
         self.text_search_box.setCurrentIndex(-1)
         self.text_search_box.setEditable(True)
-        self.text_search_box.lineEdit().textChanged.connect(self.on_search_edit)
-        self.text_search_box.lineEdit().returnPressed.connect(self.update_search)
-        self.text_search_box.activated.connect(self.update_search)
+        self.text_search_box.lineEdit().returnPressed.connect(lambda: self.update_search(save_text_hist=True))
+        self.text_search_box.activated.connect(lambda: self.update_search())
         self.text_search_clearbtn = QPushButton('&Clear')
         self.text_search_clearbtn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.text_search_clearbtn.clicked.connect(lambda: self.text_search_box.lineEdit().setText(''))
+        self.text_search_clearbtn.clicked.connect(self.text_search_box.clearEditText)
         self.text_search_clearbtn.setDefault(False)
         self.text_search_clearbtn.setAutoDefault(False)
         text_search_layout = zQHBoxLayout()
@@ -743,7 +742,7 @@ class kdMainWindow(QDialog):
 
     def kbd_paste(self):
         if self.rad_search_check.isChecked():
-            self.rad_search_box.lineEdit().setText(self.clipboard.text())
+            self.rad_search_box.setCurrentText(self.clipboard.text())
             self.rad_search_box.setFocus()
             self.update_search()
 
@@ -757,7 +756,7 @@ class kdMainWindow(QDialog):
             fw = self.frameGeometry().width()
             geo = QRect(x + fw, y, min(w, 600), max(h, 600))
             self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled, geo=geo)
-            self.on_search_edit()
+            self.on_rad_search_edit()
             self.update_search()
         self.radlist.update_btns(None)
         self.radlist.show()
@@ -785,30 +784,30 @@ class kdMainWindow(QDialog):
         self.text_search_clearbtn.setEnabled(en)
         self.update_search()
 
-    def on_search_clear(self):
-        self.rad_search_box.lineEdit().setText('')
+    def on_rad_search_clear(self):
+        self.rad_search_box.clearEditText()
         if self.radlist:
             self.radlist.set_avail(None)
 
-    def on_search_edit(self):
+    def on_rad_search_edit(self):
         if self.radlist:
-            rads = self.rad_search_box.lineEdit().text()
+            rads = self.rad_search_box.currentText()
             self.radlist.update_btns(rads)
 
     def on_radical_toggled(self, btn):
-        rads = self.rad_search_box.lineEdit().text()
+        rads = self.rad_search_box.currentText()
         r = btn.text()[0]
         if btn.isChecked() and not r in rads:
             rads += r
         else:
             rads = rads.replace(r, '')
-        self.rad_search_box.lineEdit().setText(rads)
+        self.rad_search_box.setCurrentText(rads)
         self.update_search()
 
     def on_kanji_btn_clicked(self, btn):
         self.show_info(btn.text())
 
-    def update_search(self):
+    def update_search(self, save_rad_hist=False, save_text_hist=False):
         sets = []
         # add kanji set based on stroke count
         if self.stroke_search_check.isChecked():
@@ -818,31 +817,35 @@ class kdMainWindow(QDialog):
         # add kanji set for each radical
         rads = ''
         if self.rad_search_check.isChecked():
-            rads = self.rad_search_box.lineEdit().text().strip()
+            rads = self.rad_search_box.currentText().strip()
             if len(rads):
                 # save to history
-                self.rad_search_box.lineEdit().setText(rads)
-                for i in range(self.rad_search_box.count()):
-                    if self.rad_search_box.itemText(i) == rads:
-                        self.rad_search_box.removeItem(i)
-                        break
-                self.rad_search_box.insertItem(0, rads)
-                self.rad_search_box.setCurrentIndex(0)
+                if save_rad_hist:
+                    self.rad_search_box.setCurrentText(rads)
+                    for i in range(self.rad_search_box.count()):
+                        if self.rad_search_box.itemText(i) == rads:
+                            self.rad_search_box.removeItem(i)
+                            break
+                    self.rad_search_box.insertItem(0, rads)
+                    self.rad_search_box.setCurrentIndex(0)
                 # add sets
                 for rad in rads:
                     sets.append(set(_rad2k(rad)[1]))
         # add kanji set based on full text search
         if self.text_search_check.isChecked():
-            text = self.text_search_box.lineEdit().text().strip()
+            text = self.text_search_box.currentText().strip()
             if len(text):
                 # save to history
-                for i in range(self.text_search_box.count()):
-                    if self.text_search_box.itemText(i) == text:
-                        self.text_search_box.removeItem(i)
-                        break
                 text = text.lower()
-                self.text_search_box.insertItem(0, text)
-                self.text_search_box.setCurrentIndex(0)
+                if save_text_hist:
+                    for i in range(self.text_search_box.count()):
+                        if self.text_search_box.itemText(i).lower() == text:
+                            self.text_search_box.removeItem(i)
+                            break
+                    self.text_search_box.insertItem(0, text)
+                    self.text_search_box.setCurrentIndex(0)
+                else:
+                    self.text_search_box.setCurrentText(text)
                 # add set
                 sets.append(set(_kanjidic_full_text_search(cfg['kanjidic'], text)))
         # get intersection of all kanji sets
