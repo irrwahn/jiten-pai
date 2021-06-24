@@ -966,7 +966,7 @@ class jpMainWindow(QMainWindow):
                 self.kanjidic(self.clipboard.text())
             elif cl_args.word_lookup:
                 self.show()
-                self.search_box.lineEdit().setText(cl_args.word_lookup)
+                self.search_box.setCurrentText(cl_args.word_lookup)
                 self.search()
             elif cl_args.clip_word:
                 self.show()
@@ -1108,7 +1108,7 @@ class jpMainWindow(QMainWindow):
         self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.search_box_edit_style = self.search_box.lineEdit().styleSheet()
         self.search_box_edit_valid = True
-        self.search_box.lineEdit().textChanged.connect(lambda t: self.search_onedit(t))
+        self.search_box.lineEdit().textChanged.connect(self.on_search_edit)
         self.search_box.lineEdit().returnPressed.connect(self.search)
         search_button = QPushButton('Search')
         search_button.setDefault(True)
@@ -1145,7 +1145,7 @@ class jpMainWindow(QMainWindow):
         self.clipboard.setText(self.result_pane.textCursor().selectedText())
 
     def kbd_paste(self):
-        self.search_box.lineEdit().setText(self.clipboard.text())
+        self.search_box.setCurrentText(self.clipboard.text())
         self.search_box.setFocus()
 
     def closeEvent(self, event=None):
@@ -1189,7 +1189,7 @@ class jpMainWindow(QMainWindow):
     def kanjidic_clicked(self, kanji=''):
         if kanji:
             self.show()
-            self.search_box.lineEdit().setText(kanji)
+            self.search_box.setCurrentText(kanji)
             self.activateWindow()
             self.search()
 
@@ -1201,7 +1201,7 @@ class jpMainWindow(QMainWindow):
         self.kanji_dlg.show_info(kanji)
         self.kanji_dlg.activateWindow()
 
-    def search_onedit(self, text):
+    def on_search_edit(self, text):
         try:
             re.compile(text, re.IGNORECASE)
             self.search_box.lineEdit().setStyleSheet(self.search_box_edit_style)
@@ -1213,7 +1213,7 @@ class jpMainWindow(QMainWindow):
     def search_clear(self):
         self.search_box.setFocus()
         self.search_box.setCurrentIndex(-1)
-        self.search_box.lineEdit().setText("")
+        self.search_box.clearCurrentText()
 
     TERM_END = r'(\(.+?\))?(;|$)'
     def _search_apply_options(self, term, mode):
@@ -1291,13 +1291,13 @@ class jpMainWindow(QMainWindow):
     def search(self):
         self.search_box.setFocus()
         # validate input
-        term = self.search_box.lineEdit().text().strip()
+        term = self.search_box.currentText().strip()
         if len(term) < 1:
             return
         if not self.search_box_edit_valid:
             self.search_box.lineEdit().setStyleSheet('QLineEdit { background-color: #ffc8b8; }');
             return
-        self.search_box.lineEdit().setText(term)
+        self.search_box.setCurrentText(term)
         self.result_pane.setEnabled(False)
         # save to history
         for i in range(self.search_box.count()):
