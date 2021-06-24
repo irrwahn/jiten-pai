@@ -1197,10 +1197,9 @@ class jpMainWindow(QMainWindow):
         if not self.kanji_dlg:
             self.kanji_dlg = kdMainWindow(parent=self)
             self.kanji_dlg.kanji_click.connect(self.kanjidic_clicked)
-        self.kanji_dlg.show_info(kanji)
         self.kanji_dlg.showNormal()
+        self.kanji_dlg.show_info(kanji)
         self.kanji_dlg.activateWindow()
-
 
     def search_onedit(self, text):
         try:

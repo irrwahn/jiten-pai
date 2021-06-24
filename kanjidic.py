@@ -537,15 +537,19 @@ class kdRadicalList(QDialog):
             self.col = 0
             self.row += 1
 
-    def update(self, rads):
+    def show(self):
+        self.update_btns(None)
+        super().show()
+
+    def update_btns(self, rads):
         for btn in self.btns:
-            btn.toggle_action = None
-            btn.setChecked(False)
-            for r in rads:
-                if btn.text() == r:
-                    btn.setChecked(True)
-                    break
-            btn.toggle_action = self.toggle_action
+            if btn.is_sep:
+                btn.setStyleSheet('background-color: %s; color: #ffffff; border: none;' % cfg['hl_col'])
+                continue
+            if rads is not None:
+                btn.toggle_action = None
+                btn.setChecked(btn.text() in rads)
+                btn.toggle_action = self.toggle_action
 
     def set_avail(self, avail):
         if avail is None:
@@ -727,6 +731,13 @@ class kdMainWindow(QDialog):
         if event.key() != Qt.Key_Escape or self._parent:
             super().keyPressEvent(event)
 
+    def show(self):
+        _load_cfg()
+        if self.radlist:
+            self.radlist.update_btns(None)
+            self.radlist.update()
+        super().show()
+
     def kbd_copy(self):
         self.clipboard.setText(self.info_pane.textCursor().selectedText())
 
@@ -748,6 +759,7 @@ class kdMainWindow(QDialog):
             self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled, geo=geo)
             self.on_search_edit()
             self.update_search()
+        self.radlist.update_btns(None)
         self.radlist.show()
         self.radlist.activateWindow()
 
@@ -779,7 +791,7 @@ class kdMainWindow(QDialog):
     def on_search_edit(self):
         if self.radlist:
             rads = self.rad_search_box.lineEdit().text()
-            self.radlist.update(rads)
+            self.radlist.update_btns(rads)
 
     def on_radical_toggled(self, btn):
         rads = self.rad_search_box.lineEdit().text()
@@ -859,6 +871,7 @@ class kdMainWindow(QDialog):
     def show_info(self, kanji=''):
         if not self.dic_ok:
             return
+        self.show()
         if kanji:
             # insert into history
             btn = zKanjiButton(kanji)
