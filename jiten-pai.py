@@ -427,14 +427,15 @@ class zQTextEdit(QTextEdit):
             self.app.restoreOverrideCursor()
 
     def mouseMoveEvent(self, event):
-        pos = event.pos()
-        pos.setX(pos.x() - 15)
         scr = self.verticalScrollBar().value()
         old_tcur = self.textCursor()
-        tcur = self.cursorForPosition(pos)
+        cwidth = QFontMetrics(QFont(cfg['lfont'], cfg['lfont_sz'])).horizontalAdvance('範')
+        tcur = self.cursorForPosition(QPoint(event.pos().x() - cwidth/2, event.pos().y()))
         self.setTextCursor(tcur)
-        tcur.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor);
-        char = tcur.selectedText()
+        char = ''
+        if not (tcur.atBlockStart() and event.pos().x() - self.pos().x() > cwidth):
+            tcur.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor);
+            char = tcur.selectedText()
         self.setTextCursor(old_tcur)
         self.verticalScrollBar().setValue(scr)
         if is_kanji(char):
