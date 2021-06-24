@@ -230,7 +230,7 @@ def _kanjidic_load(dict_fname):
                 info['readings'] = line.strip().replace(' ', ', ').replace('T2,', 'T2').replace('T1,', 'T1')
                 _kanjidic[kanji] = info
     except Exception as e:
-        print('_kanjidic_load:', dict_fname, str(e))
+        eprint('_kanjidic_load:', dict_fname, str(e))
         return False
     return True
 
@@ -256,7 +256,7 @@ def _kanjidic_full_text_search(dict_fname, text):
                 if text in line.lower():
                     kanji += line[0]
     except Exception as e:
-        print('_kanjidic_full_text_search:', dict_fname, str(e))
+        eprint('_kanjidic_full_text_search:', dict_fname, str(e))
     return kanji
 
 def _s2kanji(min_strokes, max_strokes=-1):
