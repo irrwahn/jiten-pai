@@ -1221,7 +1221,7 @@ class jpMainWindow(QMainWindow):
     def search_clear(self):
         self.search_box.setFocus()
         self.search_box.setCurrentIndex(-1)
-        self.search_box.clearText()
+        self.search_box.clearEditText()
 
     TERM_END = r'(\(.+?\))?(;|$)'
     def _search_apply_options(self, term, mode):
