@@ -480,9 +480,10 @@ class zKanjiButton(QPushButton):
         self.setFont(font)
 
 class zRadicalButton(zKanjiButton):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, is_sep=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setCheckable(True)
+        self.is_sep = is_sep
+        self.setCheckable(not self.is_sep)
         self.toggle_action = None
         self.toggled.connect(self._toggle)
 
@@ -512,10 +513,9 @@ class kdRadicalList(QDialog):
         for stroke in range(len(_srad)):
             if not len(_srad[stroke]):
                 continue
-            sep = zRadicalButton(str(stroke))
+            sep = zRadicalButton(str(stroke), is_sep=True)
             sep.setEnabled(False)
             sep.setStyleSheet('background-color: %s; color: #ffffff; border: none;' % cfg['hl_col'])
-            sep.is_sep = True
             self._add_widget(sep)
             for rad in _srad[stroke]:
                 btn = zRadicalButton(rad)
