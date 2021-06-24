@@ -642,8 +642,10 @@ class kdMainWindow(QDialog):
         self.rad_search_clearbtn.setDefault(False)
         self.rad_search_clearbtn.setAutoDefault(False)
         self.rad_search_listbtn = QPushButton('&Radical List')
+        self.rad_search_listbtn.setToolTip('Toggle interactive radical list.')
+        self.rad_search_listbtn.setCheckable(True)
         self.rad_search_listbtn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.rad_search_listbtn.clicked.connect(self.show_radlist)
+        self.rad_search_listbtn.clicked.connect(lambda: self.show_radlist(self.rad_search_listbtn.isChecked()))
         self.rad_search_listbtn.setDefault(False)
         self.rad_search_listbtn.setAutoDefault(False)
         rad_search_layout = zQHBoxLayout()
@@ -653,6 +655,7 @@ class kdMainWindow(QDialog):
         # full text search
         text_search_layout = zQHBoxLayout()
         self.text_search_check = QCheckBox('Full Text Search:')
+        self.text_search_check.setToolTip('Perform a case insensitive full text search in raw kanjidic file.')
         self.text_search_check.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.text_search_box = QComboBox()
         self.text_search_box.setMinimumWidth(200)
@@ -750,17 +753,20 @@ class kdMainWindow(QDialog):
         msg = '<span style="color:red;">%s</span>\n' % msg
         self.info_pane.setHtml(self.info_pane.toHtml() + msg)
 
-    def show_radlist(self):
-        if not self.radlist:
-            x, y, w, h = self.geometry().getRect()
-            fw = self.frameGeometry().width()
-            geo = QRect(x + fw, y, min(w, 600), max(h, 600))
-            self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled, geo=geo)
-            self.on_rad_search_edit()
-            self.update_search()
-        self.radlist.update_btns(None)
-        self.radlist.show()
-        self.radlist.activateWindow()
+    def show_radlist(self, show=True):
+        if show:
+            if not self.radlist:
+                x, y, w, h = self.geometry().getRect()
+                fw = self.frameGeometry().width()
+                geo = QRect(x + fw, y, min(w, 600), max(h, 600))
+                self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled, geo=geo)
+                self.on_rad_search_edit()
+                self.update_search()
+            self.radlist.update_btns(None)
+            self.radlist.show()
+            self.radlist.activateWindow()
+        elif self.radlist:
+            self.radlist.hide()
 
     def stroke_search_toggle(self):
         en = self.stroke_search_check.isChecked()
