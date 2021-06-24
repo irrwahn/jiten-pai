@@ -332,12 +332,12 @@ class zQTextEdit(QTextEdit):
     def mouseMoveEvent(self, event):
         pos = event.pos()
         pos.setX(pos.x() - 15)
+        scr = self.verticalScrollBar().value()
         old_tcur = self.textCursor()
         tcur = self.cursorForPosition(pos)
         self.setTextCursor(tcur)
         tcur.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor);
         char = tcur.selectedText()
-        scr = self.verticalScrollBar().value()
         self.setTextCursor(old_tcur)
         self.verticalScrollBar().setValue(scr)
         if is_kanji(char):
