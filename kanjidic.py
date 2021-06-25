@@ -80,6 +80,7 @@ cfg = {
     'lfont': 'IPAPMincho',
     'lfont_sz': 24.0,
     'hl_col': 'blue',
+    'max_hist': 12,
 }
 
 def _get_cfile_path(fname, mode=os.R_OK):
@@ -637,6 +638,7 @@ class kdMainWindow(QDialog):
         self.rad_search_box = QComboBox()
         self.rad_search_box.setMinimumWidth(200)
         self.rad_search_box.setMaximumWidth(340)
+        self.rad_search_box.setMaxCount(int(cfg['max_hist']))
         self.rad_search_box.setCurrentIndex(-1)
         self.rad_search_box.setEditable(True)
         self.rad_search_box.lineEdit().textChanged.connect(self.on_rad_search_edit)
@@ -667,6 +669,7 @@ class kdMainWindow(QDialog):
         self.text_search_box = QComboBox()
         self.text_search_box.setMinimumWidth(200)
         self.text_search_box.setMaximumWidth(340)
+        self.text_search_box.setMaxCount(int(cfg['max_hist']))
         self.text_search_box.setCurrentIndex(-1)
         self.text_search_box.setEditable(True)
         self.text_search_box.lineEdit().returnPressed.connect(lambda: self.update_search(save_text_hist=True))
@@ -902,7 +905,7 @@ class kdMainWindow(QDialog):
             self.info_hist.insert_top_uniq(btn)
             self.info_hist.verticalScrollBar().setValue(0)
             # limit history length
-            while self.info_hist.widget().layout().takeAt(10):
+            while self.info_hist.widget().layout().takeAt(int(cfg['max_hist'])):
                 pass
         info = ['']
         res = _kanjidic_lookup(kanji)

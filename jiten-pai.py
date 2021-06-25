@@ -1115,6 +1115,7 @@ class jpMainWindow(QMainWindow):
         # search area
         search_group = zQGroupBox('Enter expression')
         self.search_box = QComboBox()
+        self.search_box.setMaxCount(int(cfg['max_hist']))
         for h in cfg['history']:
             self.search_box.insertItem(self.search_box.count(), h)
         self.search_box.setCurrentIndex(-1)
