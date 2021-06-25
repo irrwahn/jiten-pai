@@ -1457,7 +1457,7 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
                     term = p1[0].strip()
                     hira = p2[0].strip()
                     trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
-                except:
+                except Exception as e:
                     eprint('malformed line:', line, ':', str(e))
                     continue
                 if (mode == ScanMode.JAP and (re_pattern.search(hira) or re_pattern.search(kata2hira(term)))) \
