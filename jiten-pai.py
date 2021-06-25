@@ -49,15 +49,20 @@ def die(rc=0):
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
-def is_kanji(s):
-    return True if re.match("^[\u4e00-\u9FFF]$", s) else False
+# Note: we only test for common CJK ideographs
+_u_CJK_Uni = r'\u4e00-\u9FFF'
+_u_CJK_Kana = r'\u3040-\u30ff'
 
-def has_jap(s):
-    if re.search("[\u3040-\u30ff]", s):  # kana
-        return True
-    if re.search("[\u4e00-\u9FFF]", s): # kanji
-        return True
-    return False
+_re_kanji = re.compile('^[' + _u_CJK_Uni + ']$')
+_re_jap = re.compile('[' + _u_CJK_Uni + _u_CJK_Kana + ']')
+
+# test, if a single character /might/ be a kanji
+def _is_kanji(s):
+    return _re_kanji.match(s)
+
+# test, if a string contains any common Japanese characters
+def _has_jap(s):
+    return _re_jap.search(s)
 
 class ScanMode(enum.Enum):
     JAP = 1
@@ -95,6 +100,7 @@ cfg = {
 }
 
 def _get_cfile_path(fname, mode=os.R_OK):
+    # try to find a suitable configuration file / prefix
     cdirs = []
     if os.environ.get('APPDATA'):
         cdirs.append(os.environ.get('APPDATA'))
@@ -158,6 +164,7 @@ _vconj_deinf = []
 _vconj_loaded = False
 
 def _get_dfile_path(fname, mode=os.R_OK):
+    # try to locate a data file in some common prefixes:
     cdirs = []
     if os.environ.get('APPDATA'):
         cdirs.append(os.environ.get('APPDATA'))
@@ -438,7 +445,7 @@ class zQTextEdit(QTextEdit):
             char = tcur.selectedText()
         self.setTextCursor(old_tcur)
         self.verticalScrollBar().setValue(scr)
-        if is_kanji(char):
+        if _is_kanji(char):
             self.kanji = char
             self._override_cursor()
         else:
@@ -1285,12 +1292,11 @@ class jpMainWindow(QMainWindow):
             # perform lookup
             res, ok = dict_lookup(dic, s_term, mode, limit)
             for r in list(res):
-                # reject anything not a verb, or adjective, or ...
+                # reject anything not tagged as verb, or adjective, or ...
                 if not re_consider.search(r[2]):
                     continue
-                # keep the rest with appended inflection info
-                r.append(inf)
-                result.append(r)
+                # keep the rest with added inflection info
+                result.append(r + [inf])
                 limit -= 1
             if limit <= 0 or not ok:
                 break
@@ -1325,7 +1331,7 @@ class jpMainWindow(QMainWindow):
         # search
         self.result_group.setTitle('Search results: ...')
         QApplication.processEvents()
-        mode = ScanMode.JAP if has_jap(term) else ScanMode.ENG
+        mode = ScanMode.JAP if _has_jap(term) else ScanMode.ENG
         if self.genopt_dict.isChecked():
             dics = [[self.genopt_dictsel.currentText(), self.genopt_dictsel.itemData(self.genopt_dictsel.currentIndex())]]
         else:

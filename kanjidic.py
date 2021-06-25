@@ -44,9 +44,16 @@ def die(rc=0):
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
-def is_kanji(s):
-    return True if re.match("^[\u4e00-\u9FFF]$", s) else False
+# Note: we only test for common CJK ideographs
+_u_CJK_Uni = r'\u4e00-\u9FFF'
 
+_re_kanji = re.compile('^[' + _u_CJK_Uni + ']$')
+
+# test, if a single character /might/ be a kanji
+def _is_kanji(s):
+    return _re_kanji.match(s)
+
+# try to locate a data file in some common prefixes:
 def _get_dfile_path(fname, mode=os.R_OK):
     cdirs = []
     if os.environ.get('APPDATA'):
@@ -129,7 +136,7 @@ def _rad_load():
                     radical = m.group(1)
                     stroke = int(m.group(2))
                     _radk[radical] = [stroke, '']
-                    _srad[stroke] += m.group(1)
+                    _srad[stroke] += radical
     except Exception as e:
         eprint('_rad_load:', radk_name, str(e))
         res = False
@@ -340,7 +347,7 @@ class zQTextEdit(QTextEdit):
         char = tcur.selectedText()
         self.setTextCursor(old_tcur)
         self.verticalScrollBar().setValue(scr)
-        if is_kanji(char):
+        if _is_kanji(char):
             self.kanji = char
             self._override_cursor()
         else:
