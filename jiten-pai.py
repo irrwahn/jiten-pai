@@ -975,6 +975,9 @@ class jpMainWindow(QMainWindow):
         if cl_args is not None:
             if cl_args.kanjidic:
                 self.kanjidic()
+            elif cl_args.K:
+                self.show()
+                self.kanjidic()
             elif cl_args.kanji_lookup:
                 self.kanjidic(cl_args.kanji_lookup)
             elif cl_args.clip_kanji:
@@ -1484,6 +1487,7 @@ def _parse_cmdline():
         epilog='Only one of these options should be used at a time.\n'
     )
     parser.add_argument('-k', '--kanjidic', action='count', help='start with KanjiDic')
+    parser.add_argument('-K', action='count', help='same as -k, but word dictionary visible')
     parser.add_argument('-c', '--clip-kanji', action='count', help='look up kanji from clipboard')
     parser.add_argument('-v', '--clip-word', action='count', help='look up word from clipboard')
     parser.add_argument('-l', '--kanji-lookup', metavar='KANJI', help='look up KANJI in kanji dictionary')

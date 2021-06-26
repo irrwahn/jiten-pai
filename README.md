@@ -88,13 +88,14 @@ dictionary copyright information and licensing terms.
 Jiten-pai supports a few command line options which might come in handy
 for workflow integration.  They should be fairly self explaining:
 ```
-    usage: jiten-pai.py [-h] [-k] [-c] [-v] [-l KANJI] [-w WORD]
+    usage: jiten-pai.py [-h] [-k] [-K] [-c] [-v] [-l KANJI] [-w WORD]
 
     Jiten-pai Japanese dictionary
 
     optional arguments:
       -h, --help                      show this help message and exit
       -k, --kanjidic                  start with KanjiDic
+      -K                              same as -k, but word dictionary visible
       -c, --clip-kanji                look up kanji from clipboard
       -v, --clip-word                 look up word from clipboard
       -l KANJI, --kanji-lookup KANJI  look up KANJI in kanji dictionary
