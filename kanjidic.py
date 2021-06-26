@@ -795,7 +795,7 @@ class kdMainWindow(QDialog):
         self.rad_search_box.setEnabled(en)
         self.rad_search_clearbtn.setEnabled(en)
         self.rad_search_listbtn.setEnabled(en)
-        if self.radlist:
+        if self.radlist and self.rad_search_listbtn.isChecked():
             self.radlist.setVisible(en)
         self.update_search()
 
