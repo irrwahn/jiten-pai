@@ -160,6 +160,34 @@ except Exception as e:
 ############################################################
 # verb de-inflection
 
+_vconj_wclass = { # TODO: adjust these REs to best fit word classes to inflection rule.
+     0: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain, negative, nonpast
+     1: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, non-past
+     2: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # conditional
+     3: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # volitional
+     4: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # te-form
+     5: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain, past
+     6: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain, negative, past
+     7: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # passive
+     8: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # causative
+     9: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # potential or imperative
+    10: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # imperative
+    11: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, past
+    12: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, negative, non-past
+    13: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, negative, past
+    14: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, volitional
+    15: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj. -> adverb
+    16: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj., past
+    17: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite
+    18: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, volitional
+    19: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # passive or potential
+    20: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # passive (or potential if Grp 2)
+    21: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj., negative
+    22: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj., negative, past
+    23: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj., past
+    24: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain verb
+    25: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, te-form
+}
 _vconj_type = dict()
 _vconj_deinf = []
 _vconj_loaded = False
@@ -210,7 +238,7 @@ def _vconj_deinflect(verb):
         v = p[0].sub(p[2], verb)
         if v != verb:
             blurb = '%s %s → %s' % (_vconj_type[p[3]], p[1], p[2])
-            inf.append([v, blurb])
+            inf.append([v, blurb, int(p[3])])
     return inf
 
 
@@ -1290,7 +1318,6 @@ class jpMainWindow(QMainWindow):
         QApplication.processEvents()
 
     def _search_deinflected(self, inflist, dic, mode, limit):
-        re_consider = re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))')
         result = []
         ok = True
         for inf in inflist:
@@ -1298,8 +1325,8 @@ class jpMainWindow(QMainWindow):
             # perform lookup
             res, ok = dict_lookup(dic, s_term, mode, limit)
             for r in list(res):
-                # reject anything not tagged as verb, or adjective, or ...
-                if not re_consider.search(r[2]):
+                # reject anything not in a suitable word class
+                if not _vconj_wclass[inf[2]].search(r[2]):
                     continue
                 # keep the rest with added inflection info
                 result.append(r + [inf])
