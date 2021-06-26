@@ -682,11 +682,25 @@ class kdMainWindow(QDialog):
         text_search_layout = zQHBoxLayout()
         text_search_layout.addWidget(self.text_search_box, 10)
         text_search_layout.addWidget(self.text_search_clearbtn, 1)
+        # result sorting
+        self.sort_check = QCheckBox('S&ort Results by:')
+        self.sort_stroke = QRadioButton('Strokes')
+        self.sort_radic = QRadioButton('Radicals')
+        self.sort_codep = QRadioButton('Codepoint')
+        self.sort_stroke.setChecked(True)
+        sort_layout = zQHBoxLayout()
+        sort_layout.addWidget(self.sort_stroke, 1)
+        sort_layout.addSpacing(10)
+        sort_layout.addWidget(self.sort_radic, 1)
+        sort_layout.addSpacing(10)
+        sort_layout.addWidget(self.sort_codep, 1)
+        sort_layout.addStretch(999)
         # search option layout
         opt_layout = zQFormLayout()
         opt_layout.addRow(self.stroke_search_check, stroke_search_layout )
         opt_layout.addRow(self.rad_search_check, rad_search_layout )
         opt_layout.addRow(self.text_search_check, text_search_layout )
+        opt_layout.addRow(self.sort_check, sort_layout )
         self.opt_group.setLayout(opt_layout)
         # search results
         self.result_group = zQGroupBox('Search Results:')
@@ -738,6 +752,12 @@ class kdMainWindow(QDialog):
         self.text_search_check.toggled.connect(self.text_search_toggle)
         self.text_search_check.setChecked(True)
         self.text_search_check.setChecked(False)
+        self.sort_check.toggled.connect(self.sort_toggle)
+        self.sort_stroke.toggled.connect(self.sort_toggle)
+        self.sort_radic.toggled.connect(self.sort_toggle)
+        self.sort_codep.toggled.connect(self.sort_toggle)
+        self.sort_check.setChecked(True)
+        self.sort_check.setChecked(False)
 
     def reject(self):
         if self.radlist:
@@ -803,6 +823,13 @@ class kdMainWindow(QDialog):
         en = self.text_search_check.isChecked()
         self.text_search_box.setEnabled(en)
         self.text_search_clearbtn.setEnabled(en)
+        self.update_search()
+
+    def sort_toggle(self):
+        en = self.sort_check.isChecked()
+        self.sort_stroke.setEnabled(en)
+        self.sort_radic.setEnabled(en)
+        self.sort_codep.setEnabled(en)
         self.update_search()
 
     def on_rad_search_clear(self):
@@ -875,6 +902,15 @@ class kdMainWindow(QDialog):
             res = sets[0]
             for s in sets[1:]:
                 res = res.intersection(s)
+        # sort results
+        if self.sort_check.isChecked():
+            if self.sort_stroke.isChecked():
+                key = lambda k: int(_kanjidic_lookup(k)['strokes'])
+            elif self.sort_radic.isChecked():
+                key = lambda k: _kanjidic_lookup(k)['radicals']
+            else: # self.sort_codep
+                key = lambda k: ord(k)
+            res = sorted(res, key=key)
         # update search results pane
         self.result_group.setTitle('Search Results: %d' % len(res))
         self.result_area.clear()
