@@ -1020,6 +1020,7 @@ class jpMainWindow(QMainWindow):
         if _got_kd:
             kanjidic_action = QAction('&KanjiDic', self)
             kanjidic_action.triggered.connect(self.kanjidic)
+            kanjidic_action.setShortcut('Alt+K')
             tools_menu.addAction(kanjidic_action)
         help_menu = menubar.addMenu('&Help')
         about_action = QAction('&About', self)
