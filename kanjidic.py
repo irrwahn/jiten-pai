@@ -427,6 +427,10 @@ class zFlowLayout(QLayout):
             x = nextX
         return y + iheight - rect.y()
 
+    def sort(self, sort_fnc):
+        srt = iter(sorted([x.widget().text() for x in self.itemList], key=sort_fnc))
+        for item in self.itemList:
+            item.widget().setText(next(srt))
 
 class zFlowScrollArea(QScrollArea):
     def __init__(self, *args, **kwargs):
@@ -462,6 +466,9 @@ class zFlowScrollArea(QScrollArea):
                 break
         layout.insertWidgetTop(w)
         self.setUpdatesEnabled(True)
+
+    def sort(self, sort_fnc):
+        self.widget().layout().sort(sort_fnc)
 
 class zKanjiButton(QPushButton):
     def __init__(self, *args, **kwargs):
@@ -825,12 +832,13 @@ class kdMainWindow(QDialog):
         self.text_search_clearbtn.setEnabled(en)
         self.update_search()
 
-    def sort_toggle(self):
+    def sort_toggle(self, checked):
         en = self.sort_check.isChecked()
         self.sort_stroke.setEnabled(en)
         self.sort_radic.setEnabled(en)
         self.sort_codep.setEnabled(en)
-        self.update_search()
+        if checked:
+            self.sort_results()
 
     def on_rad_search_clear(self):
         self.rad_search_box.clearEditText()
@@ -902,15 +910,6 @@ class kdMainWindow(QDialog):
             res = sets[0]
             for s in sets[1:]:
                 res = res.intersection(s)
-        # sort results
-        if self.sort_check.isChecked():
-            if self.sort_stroke.isChecked():
-                key = lambda k: int(_kanjidic_lookup(k)['strokes'])
-            elif self.sort_radic.isChecked():
-                key = lambda k: _kanjidic_lookup(k)['radicals']
-            else: # self.sort_codep
-                key = lambda k: ord(k)
-            res = sorted(res, key=key)
         # update search results pane
         self.result_group.setTitle('Search Results: %d' % len(res))
         self.result_area.clear()
@@ -924,11 +923,22 @@ class kdMainWindow(QDialog):
             if self.radlist:
                 av_rads += _k2rad(r)
         self.result_area.fill(tiles)
+        self.sort_results()
         if len(res) == 1:
             self.show_info(list(res)[0])
         # update list of possible radicals
         if self.radlist:
             self.radlist.set_avail(set(av_rads) if rads or av_rads else None)
+
+    def sort_results(self):
+        if self.sort_check.isChecked():
+            if self.sort_stroke.isChecked():
+                key = lambda k: int(_kanjidic_lookup(k)['strokes'])
+            elif self.sort_radic.isChecked():
+                key = lambda k: _kanjidic_lookup(k)['radicals']
+            else: # self.sort_codep
+                key = lambda k: ord(k)
+            self.result_area.sort(key)
 
     def show_info(self, kanji=''):
         if not self.dic_ok:
