@@ -52,9 +52,10 @@ def eprint(*args, **kwargs):
 # Note: we only test for common CJK ideographs
 _u_CJK_Uni = r'\u4e00-\u9FFF'
 _u_CJK_Kana = r'\u3040-\u30ff'
+_u_CJK_FullHalf = r'\uFF00-\uFFEF'
 
 _re_kanji = re.compile('^[' + _u_CJK_Uni + ']$')
-_re_jap = re.compile('[' + _u_CJK_Uni + _u_CJK_Kana + ']')
+_re_jap = re.compile('[' + _u_CJK_Uni + _u_CJK_Kana + _u_CJK_FullHalf + ']')
 
 # test, if a single character /might/ be a kanji
 def _is_kanji(s):
