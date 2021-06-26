@@ -1460,7 +1460,7 @@ def dict_lookup(dict_fname, pattern, mode, limit=0):
                 except Exception as e:
                     eprint('malformed line:', line, ':', str(e))
                     continue
-                if (mode == ScanMode.JAP and (re_pattern.search(hira) or re_pattern.search(kata2hira(term)))) \
+                if (mode == ScanMode.JAP and (re_pattern.search(kata2hira(hira)) or re_pattern.search(kata2hira(term)))) \
                 or (mode == ScanMode.ENG and re_pattern.search(trans)):
                     result.append([term, hira, trans])
                     cnt += 1
