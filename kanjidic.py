@@ -512,6 +512,7 @@ class zRadicalButton(zKanjiButton):
 
 class kdRadicalList(QDialog):
     btns = []
+    vis_changed = pyqtSignal(bool)
 
     def __init__(self, *args, toggle_action=None, geo=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -553,8 +554,13 @@ class kdRadicalList(QDialog):
             self.row += 1
 
     def show(self):
+        self.vis_changed.emit(True)
         self.update_btns(None)
         super().show()
+
+    def reject(self):
+        self.vis_changed.emit(False)
+        super().reject()
 
     def update_btns(self, rads):
         for btn in self.btns:
@@ -802,6 +808,7 @@ class kdMainWindow(QDialog):
                 fw = self.frameGeometry().width()
                 geo = QRect(x + fw, y, min(w, 600), max(h, 600))
                 self.radlist = kdRadicalList(toggle_action=self.on_radical_toggled, geo=geo)
+                self.radlist.vis_changed.connect(self.radlist_vis_changed)
                 self.on_rad_search_edit()
                 self.update_search()
             self.radlist.update_btns(None)
@@ -809,6 +816,9 @@ class kdMainWindow(QDialog):
             self.radlist.activateWindow()
         elif self.radlist:
             self.radlist.hide()
+
+    def radlist_vis_changed(self, visible):
+        self.rad_search_listbtn.setChecked(visible)
 
     def stroke_search_toggle(self):
         en = self.stroke_search_check.isChecked()
