@@ -17,7 +17,7 @@ Jiten-pai supports word dictionary files in EDICT format, as made available by
 the [Electronic Dictionary Research and Development Group](http://www.edrdg.org/):
 
 * [EDICT2](http://ftp.edrdg.org/pub/Nihongo/edict2.gz) *(essential)*
-    * EDICT main dictionary; modern, revised format; EUC-JP encoding;
+    * EDICT main dictionary; revised format; EUC-JP encoding;
     * download file, then unpack and convert to UTF-8:
       > `zcat edict2.gz | recode EUC-JP..UTF-8 > edict2`
     * install in Jiten-pai using the Edit->Preferences dialog
@@ -64,7 +64,7 @@ dictionary copyright information and licensing terms.
   always report matches for both syllabaries. This is intentional.
 
 * The word search supports Python regular expression syntax to allow for
-  less strict queries. Consequently, backslash-escaping is required when,
+  more flexible queries. Consequently, backslash-escaping is required when,
   for whatever reason, searching verbatim for regex special characters
   like '.', '(', ')', etc.  Using the '^' and '$' regex anchors is
   strongly discouraged. Equivalent functionality is already provided by
@@ -86,7 +86,7 @@ dictionary copyright information and licensing terms.
 ## Command Line
 
 Jiten-pai supports a few command line options which might come in handy
-for workflow integration.  They should be fairly self explaining:
+for workflow integration.  These should be fairly self explaining:
 ```
     usage: jiten-pai.py [-h] [-k] [-K] [-c] [-v] [-l KANJI] [-w WORD]
 
