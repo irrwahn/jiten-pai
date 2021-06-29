@@ -78,6 +78,7 @@ cfg = {
     'dicts': [
         ['edict2', '/usr/local/share/jiten-pai/edict2'],
     ],
+    'dict_load': True,
     'dict_idx': 0,
     'dict_all': False,
     'limit': 100,
@@ -142,6 +143,8 @@ def _load_cfg():
     try:
         with open(cfname, 'r') as cfgfile:
             cfg.update(json.load(cfgfile))
+            global _dict_lookup
+            _dict_lookup = _dict_lookup_load if cfg['dict_load'] else _dict_lookup_noload
             cfg['cfgfile'] = cfname
             return
     except Exception as e:
@@ -767,11 +770,15 @@ class prefDialog(QDialog):
         fonts_layout.addRow('Font Sample:', self.font_sample)
         # search options
         search_group = zQGroupBox('Search Options')
+        self.dict_load = QCheckBox('&Load Dictionary on first use')
+        self.dict_load.setToolTip('Trade increased memory usage for faster dictionary lookup.')
+        self.dict_load.setChecked(cfg['dict_load'])
         self.search_deinflect = QCheckBox('&Verb Deinflection')
         self.search_deinflect.setToolTip('Enable search heuristic for possibly inflected verbs or adjectives.')
         self.search_deinflect.setChecked(cfg['deinflect'])
         self.search_deinflect.setEnabled(_vconj_loaded)
         search_layout = zQVBoxLayout(search_group)
+        search_layout.addWidget(self.dict_load)
         search_layout.addWidget(self.search_deinflect)
         search_layout.addSpacing(10)
         # kanjidic options
@@ -916,6 +923,14 @@ class prefDialog(QDialog):
         self.update_font_sample()
         cfg['deinflect'] = self.search_deinflect.isChecked()
         cfg['kanjidic'] = self.kdic_button.text()
+        cfg['dict_load'] = self.dict_load.isChecked()
+        global _dict_lookup
+        if cfg['dict_load']:
+            _dict_lookup = _dict_lookup_load
+        else:
+            global _dict
+            _dict = {}
+            _dict_lookup = _dict_lookup_noload
         d = []
         it = QTreeWidgetItemIterator(self.dict_list)
         while it.value():
@@ -1323,7 +1338,7 @@ class jpMainWindow(QMainWindow):
         for inf in inflist:
             s_term = r'(^|;)' + inf[0] + self.TERM_END
             # perform lookup
-            res, ok = dict_lookup(dic, s_term, mode, limit)
+            res, ok = _dict_lookup(dic, s_term, mode, limit)
             for r in list(res):
                 # reject anything not in a suitable word class
                 if not _vconj_wclass[inf[2]].search(r[2]):
@@ -1396,7 +1411,7 @@ class jpMainWindow(QMainWindow):
             rlen = len(result)
             while ok:
                 s_term = self._search_apply_options(term, mode)
-                r, ok = dict_lookup(d[1], s_term, mode, limit)
+                r, ok = _dict_lookup(d[1], s_term, mode, limit)
                 self._search_show_progress()
                 result.extend(r)
                 limit -= len(r)
@@ -1464,44 +1479,74 @@ class jpMainWindow(QMainWindow):
 
 
 ############################################################
-# dictionary lookup
+# dictionary load and lookup
 #
 # edict example lines:
 # 〆日 [しめび] /(n) time limit/closing day/settlement day (payment)/deadline/
 # ハート /(n) heart/(P)/
 
-def dict_lookup(dict_fname, pattern, mode, limit=0):
+_dict_lookup = None
+
+_dict = {}      # format: { 'filename_1': [(headword, reading, gloss), ...], ... }
+
+def _dict_split_line(line):
+    # manually splitting the line is actually faster than regex
+    try:
+        p1 = line.split('[', 1)
+        if len(p1) < 2:
+            p1 = line.split('/', 1)
+            p2 = ['', p1[1]]
+        else:
+            p2 = p1[1].split(']', 1)
+        headword = p1[0].strip()
+        reading = p2[0].strip()
+        gloss = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
+        return (headword, reading, gloss)
+    except Exception as e:
+        eprint('malformed line:', line, ':', str(e))
+        return ('', '', '')
+
+def _dict_load(dict_fname):
+    dic = _dict.get(dict_fname, [])
+    if not dic:
+        try:
+            with open(dict_fname) as dict_file:
+                for line in dict_file:
+                    entry = _dict_split_line(line)
+                    if entry[0]:
+                        dic.append(entry)
+            _dict[dict_fname] = dic
+        except Exception as e:
+            eprint('_dict_load:', dict_fname, str(e))
+    return dic
+
+def _dict_matches(dic, pattern, mode, limit):
     result = []
     cnt = 0
-    ok = False
+    re_pattern = re.compile(pattern, re.IGNORECASE)
+    for entry in dic:
+        if (mode == ScanMode.JAP and (re_pattern.search(kata2hira(entry[0])) or re_pattern.search(kata2hira(entry[1])))) \
+        or (mode == ScanMode.ENG and re_pattern.search(entry[2])):
+            result.append(list(entry))
+            cnt += 1
+            if limit and cnt >= limit:
+                break
+    return result
+
+def _dict_lookup_load(dict_fname, pattern, mode, limit=0):
+    dic = _dict_load(dict_fname)
+    if dic:
+        return _dict_matches(dic, pattern, mode, limit), True
+    return [], False
+
+def _dict_lookup_noload(dict_fname, pattern, mode, limit=0):
     try:
         with open(dict_fname) as dict_file:
-            re_pattern = re.compile(pattern, re.IGNORECASE)
-            for line in dict_file:
-                try:
-                    # manually splitting the line is actually faster than regex
-                    p1 = line.split('[', 1)
-                    if len(p1) < 2:
-                        p1 = line.split('/', 1)
-                        p2 = ['', p1[1]]
-                    else:
-                        p2 = p1[1].split(']', 1)
-                    term = p1[0].strip()
-                    hira = p2[0].strip()
-                    trans = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
-                except Exception as e:
-                    eprint('malformed line:', line, ':', str(e))
-                    continue
-                if (mode == ScanMode.JAP and (re_pattern.search(kata2hira(hira)) or re_pattern.search(kata2hira(term)))) \
-                or (mode == ScanMode.ENG and re_pattern.search(trans)):
-                    result.append([term, hira, trans])
-                    cnt += 1
-                    if limit and cnt >= limit:
-                        break
-            ok = True
+            dic = map(_dict_split_line, dict_file)
+            return _dict_matches(dic, pattern, mode, limit), True
     except Exception as e:
-        eprint('lookup:', dict_fname, str(e))
-    return result, ok
+        eprint('_dict_lookup_noload:', dict_fname, str(e))
+    return [], False
 
 
 ############################################################
