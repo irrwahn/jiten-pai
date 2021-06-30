@@ -1447,32 +1447,30 @@ class jpMainWindow(QMainWindow):
             if res[0] == '#':
                 html[idx+1] = '<p>Matches in <span style="color:#bc3031;">%s</span>:</p>' % res[1]
                 continue
-            if len(res) > 3:
-                verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s<br>' % res[3][1]
-                re_inf = re.compile(res[3][0], re.IGNORECASE)
             # render edict2 priority markers in small font (headwords only)
             res[0] = re_mark.sub(r'<small>\1</small>', res[0])
             # line break edict2 multi-headword entries
             res[0] = res[0].replace(';', '<br>')
+            # parenthesize reading
+            if len(res[1]) > 0:
+                res[1] = '(%s)' % res[1]
             # for now just drop the edict2 entry number part,
             # in future this could be used to e.g. link somewhere relevant
             res[2] = re_entity.sub('', res[2])
             # highlight matches
+            verb_message = ''
             if mode == ScanMode.JAP:
                 if len(res) > 3:
-                    res[0] = re_inf.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
-                    res[1] = re_inf.sub(hl_repl, res[1])
+                    verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s<br>' % res[3].blurb
+                    rex = re.compile(res[3].inf, re.IGNORECASE)
                 else:
-                    res[0] = re_term.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
-                    res[1] = re_term.sub(hl_repl, res[1])
+                    rex = re_term
+                res[0] = rex.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
+                res[1] = rex.sub(lambda m: hl_repl(m, res[1]), kata2hira(res[1]))
             else:
                 res[2] = re_term.sub(hl_repl, res[2])
-            # construct display line
-            html[idx+1] = '<p>%s%s%s</span>%s %s</p>\n' \
-                % ((verb_message if len(res)>3 else ''), \
-                   lfmt, res[0],\
-                   (' (%s)'%res[1] if len(res[1]) > 0 else ''),\
-                   res[2])
+            # assemble display line
+            html[idx+1] = '<p>%s%s%s</span>%s %s</p>\n' % (verb_message, lfmt, res[0], res[1], res[2])
         html[rlen + 1] = '</div>'
         self.result_pane.setHtml(''.join(html))
         self.result_pane.setEnabled(True)
