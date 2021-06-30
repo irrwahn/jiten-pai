@@ -1450,9 +1450,6 @@ class jpMainWindow(QMainWindow):
         hlfmt = '<span style="color:%s;">' % cfg['hl_col']
         html = [''] * (rlen + 2)
         html[0] = nfmt
-        def hl_repl(match, org=None):
-            grp = match.group(0) if org is None else org[match.span()[0]:match.span()[1]]
-            return '%s%s</span>' % (hlfmt, grp)
         def hl_jap(rex, word):
             hlw = []
             start = 0
@@ -1486,7 +1483,7 @@ class jpMainWindow(QMainWindow):
                 headword = hl_jap(rex, headword)
                 reading = hl_jap(rex, reading)
             else:
-                gloss = re_term.sub(hl_repl, gloss)
+                gloss = re_term.sub(lambda m: '%s%s</span>'%(hlfmt,m.group(0)), gloss)
             # assemble display line
             html[idx+1] = '<p>%s%s%s</span>%s %s</p>\n' % (verb_message, lfmt, headword, reading, gloss)
         html[rlen + 1] = '</div>'
