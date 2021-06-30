@@ -1453,6 +1453,14 @@ class jpMainWindow(QMainWindow):
         def hl_repl(match, org=None):
             grp = match.group(0) if org is None else org[match.span()[0]:match.span()[1]]
             return '%s%s</span>' % (hlfmt, grp)
+        def hl_jap(rex, word):
+            hlw = []
+            start = 0
+            for match in rex.finditer(kata2hira(word)):
+                hlw.append('%s%s%s</span>' % (word[start:match.span()[0]], hlfmt, word[match.span()[0]:match.span()[1]]))
+                start = match.span()[1]
+            hlw.append(word[start:])
+            return ''.join(hlw)
         for idx, res in enumerate(result):
             # handle dictionary caption
             if res.headword == '#':
@@ -1475,8 +1483,8 @@ class jpMainWindow(QMainWindow):
                     rex = re.compile(res.inf.infi, re.IGNORECASE)
                 else:
                     rex = re_term
-                headword = rex.sub(lambda m: hl_repl(m, headword), kata2hira(headword))
-                reading = rex.sub(lambda m: hl_repl(m, reading), kata2hira(reading))
+                headword = hl_jap(rex, headword)
+                reading = hl_jap(rex, reading)
             else:
                 gloss = re_term.sub(hl_repl, gloss)
             # assemble display line
