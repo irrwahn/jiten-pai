@@ -35,6 +35,7 @@ import json
 import unicodedata
 import enum
 import base64
+from collections import namedtuple
 from argparse import ArgumentParser, RawTextHelpFormatter
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -163,6 +164,8 @@ except Exception as e:
 ############################################################
 # verb de-inflection
 
+# REs for word classes a specific inflection rule may generally be
+# applicable to, as tagged in the gloss part of dictionary entries.
 _vconj_wclass = { # TODO: adjust these REs to best fit word classes to inflection rule.
      0: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain, negative, nonpast
      1: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, non-past
@@ -191,6 +194,7 @@ _vconj_wclass = { # TODO: adjust these REs to best fit word classes to inflectio
     24: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain verb
     25: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, te-form
 }
+
 _vconj_type = dict()
 _vconj_deinf = []
 _vconj_loaded = False
@@ -211,6 +215,9 @@ def _get_dfile_path(fname, mode=os.R_OK):
             return path
     return fname
 
+# load and parse VCONJ rule file
+Vconj = namedtuple('Vconj', 'regex conj infi rule')
+
 def _vconj_load():
     global _vconj_loaded
     vcname = _JITENPAI_VCONJ
@@ -227,21 +234,24 @@ def _vconj_load():
                     continue
                 match = re_deinf.match(line)
                 if match:
-                    r = re.compile('%s$' % match.group(1))
-                    _vconj_deinf.append([r, match.group(1), match.group(2), match.group(3)])
+                    regex = re.compile('%s$' % match.group(1))
+                    _vconj_deinf.append(Vconj(regex, match.group(1), match.group(2), match.group(3)))
                     continue
         _vconj_loaded = len(_vconj_deinf) > 0
     except Exception as e:
         eprint('_vconj_load:', vcname, str(e))
 
+# collect inflection rules potentially applicable to a verb(-candidate)
+Vinf = namedtuple('Vinf', 'infi blurb rule')
+
 def _vconj_deinflect(verb):
     inf = []
     blurb = ''
-    for p in _vconj_deinf:
-        v = p[0].sub(p[2], verb)
-        if v != verb:
-            blurb = '%s %s → %s' % (_vconj_type[p[3]], p[1], p[2])
-            inf.append([v, blurb, int(p[3])])
+    for deinf in _vconj_deinf:
+        verb_inf = deinf.regex.sub(deinf.infi, verb)
+        if verb_inf != verb:
+            blurb = '%s %s → %s' % (_vconj_type[deinf.rule], deinf.conj, deinf.infi)
+            inf.append(Vinf(verb_inf, blurb, int(deinf.rule)))
     return inf
 
 
@@ -1336,16 +1346,15 @@ class jpMainWindow(QMainWindow):
         result = []
         ok = True
         for inf in inflist:
-            s_term = r'(^|;)' + inf[0] + self.TERM_END
-            # perform lookup
+            # perform lookup for the infinitive form
+            s_term = r'(^|;)' + inf.infi + self.TERM_END
             res, ok = _dict_lookup(dic, s_term, mode, limit)
-            for r in list(res):
-                # reject anything not in a suitable word class
-                if not _vconj_wclass[inf[2]].search(r[2]):
-                    continue
-                # keep the rest with added inflection info
-                result.append(r + [inf])
-                limit -= 1
+            # keep only results belonging to a suitable word class and
+            # attach the inflection info; reject everything else
+            for r in res:
+                if _vconj_wclass[inf.rule].search(r.gloss):
+                    result.append(EntryEx(r.headword, r.reading, r.gloss, inf))
+                    limit -= 1
             if limit <= 0 or not ok:
                 break
         return result, ok
@@ -1393,8 +1402,9 @@ class jpMainWindow(QMainWindow):
         rdiff = 0
         for d in dics:
             ok = True
+            # add dictionary caption
             if len(dics) > 1:
-                result.append(['#', d[0]])
+                result.append(Entry('#', '', d[0]))
                 rdiff += 1
             # search de-inflected verbs
             if len(inflist) > 0:
@@ -1444,33 +1454,33 @@ class jpMainWindow(QMainWindow):
             grp = match.group(0) if org is None else org[match.span()[0]:match.span()[1]]
             return '%s%s</span>' % (hlfmt, grp)
         for idx, res in enumerate(result):
-            if res[0] == '#':
-                html[idx+1] = '<p>Matches in <span style="color:#bc3031;">%s</span>:</p>' % res[1]
+            # handle dictionary caption
+            if res.headword == '#':
+                html[idx+1] = '<p>Matches in <span style="color:#bc3031;">%s</span>:</p>' % res.gloss
                 continue
             # render edict2 priority markers in small font (headwords only)
-            res[0] = re_mark.sub(r'<small>\1</small>', res[0])
+            headword = re_mark.sub(r'<small>\1</small>', res.headword)
             # line break edict2 multi-headword entries
-            res[0] = res[0].replace(';', '<br>')
+            headword = headword.replace(';', '<br>')
             # parenthesize reading
-            if len(res[1]) > 0:
-                res[1] = '(%s)' % res[1]
-            # for now just drop the edict2 entry number part,
+            reading = '(%s)' % res.reading if res.reading else ''
+            # for now just drop the edict2 entry number part from gloss,
             # in future this could be used to e.g. link somewhere relevant
-            res[2] = re_entity.sub('', res[2])
+            gloss = re_entity.sub('', res.gloss)
             # highlight matches
             verb_message = ''
             if mode == ScanMode.JAP:
                 if len(res) > 3:
-                    verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s<br>' % res[3].blurb
-                    rex = re.compile(res[3].inf, re.IGNORECASE)
+                    verb_message = '<span style="color:#bc3031;">Possible inflected verb or adjective:</span> %s<br>' % res.inf.blurb
+                    rex = re.compile(res.inf.infi, re.IGNORECASE)
                 else:
                     rex = re_term
-                res[0] = rex.sub(lambda m: hl_repl(m, res[0]), kata2hira(res[0]))
-                res[1] = rex.sub(lambda m: hl_repl(m, res[1]), kata2hira(res[1]))
+                headword = rex.sub(lambda m: hl_repl(m, headword), kata2hira(headword))
+                reading = rex.sub(lambda m: hl_repl(m, reading), kata2hira(reading))
             else:
-                res[2] = re_term.sub(hl_repl, res[2])
+                gloss = re_term.sub(hl_repl, gloss)
             # assemble display line
-            html[idx+1] = '<p>%s%s%s</span>%s %s</p>\n' % (verb_message, lfmt, res[0], res[1], res[2])
+            html[idx+1] = '<p>%s%s%s</span>%s %s</p>\n' % (verb_message, lfmt, headword, reading, gloss)
         html[rlen + 1] = '</div>'
         self.result_pane.setHtml(''.join(html))
         self.result_pane.setEnabled(True)
@@ -1483,9 +1493,12 @@ class jpMainWindow(QMainWindow):
 # 〆日 [しめび] /(n) time limit/closing day/settlement day (payment)/deadline/
 # ハート /(n) heart/(P)/
 
+Entry = namedtuple('Entry', 'headword reading gloss')
+EntryEx = namedtuple('EntryEx', 'headword reading gloss inf')
+
 _dict_lookup = None
 
-_dict = {}      # format: { 'filename_1': [(headword, reading, gloss), ...], ... }
+_dict = {}      # format: { 'filename_1': [Entry_0, ...], ... }
 
 def _dict_split_line(line):
     # manually splitting the line is actually faster than regex
@@ -1499,10 +1512,10 @@ def _dict_split_line(line):
         headword = p1[0].strip()
         reading = p2[0].strip()
         gloss = ' ' + p2[1].lstrip('/ ').rstrip(' \t\r\n').replace('/', '; ')
-        return (headword, reading, gloss)
     except Exception as e:
         eprint('malformed line:', line, ':', str(e))
-        return ('', '', '')
+        headword = reading = gloss = ''
+    return Entry(headword, reading, gloss)
 
 def _dict_load(dict_fname):
     dic = _dict.get(dict_fname, [])
@@ -1511,7 +1524,7 @@ def _dict_load(dict_fname):
             with open(dict_fname) as dict_file:
                 for line in dict_file:
                     entry = _dict_split_line(line)
-                    if entry[0]:
+                    if entry.headword:
                         dic.append(entry)
             _dict[dict_fname] = dic
         except Exception as e:
@@ -1523,9 +1536,10 @@ def _dict_matches(dic, pattern, mode, limit):
     cnt = 0
     re_pattern = re.compile(pattern, re.IGNORECASE)
     for entry in dic:
-        if (mode == ScanMode.JAP and (re_pattern.search(kata2hira(entry[0])) or re_pattern.search(kata2hira(entry[1])))) \
-        or (mode == ScanMode.ENG and re_pattern.search(entry[2])):
-            result.append(list(entry))
+        if (mode == ScanMode.JAP and (re_pattern.search(kata2hira(entry.headword)) \
+                                   or re_pattern.search(kata2hira(entry.reading)))) \
+        or (mode == ScanMode.ENG and re_pattern.search(entry.gloss)):
+            result.append(entry)
             cnt += 1
             if limit and cnt >= limit:
                 break
