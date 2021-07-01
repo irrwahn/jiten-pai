@@ -50,8 +50,13 @@ part of Jiten-pai requires installation of the `kanjidic` file, also made
 available by the EDRDG:
 
 * [KANJIDIC](http://ftp.edrdg.org/pub/Nihongo/kanjidic.gz) *(recommended)*
-    * Kanji dictionary; EUC-JP encoding
+    * Kanji dictionary; plain text format; EUC-JP encoding
     * download file, unpack and convert to UTF-8 *(see above)*
+    * install via Edit->Preferences
+
+* [KANJIDIC2](http://ftp.edrdg.org/pub/Nihongo/kanjidic2.xml.gz) *(alternative)*
+    * Kanji dictionary; XML format; UTF-8 encoding
+    * download file, unpack
     * install via Edit->Preferences
 
 The [EDRDG licence page](http://www.edrdg.org/edrdg/licence.html) provides

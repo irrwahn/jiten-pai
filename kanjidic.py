@@ -171,7 +171,7 @@ def _k2rad(kanji):
 # load kanjidic
 # See: http://www.edrdg.org/kanjidic/kanjidic_doc_legacy.html#IREF02
 #
-# kanjidic example lines:
+# kanjidic1 example lines:
 #
 # 心 3F34 U5fc3 B61 G2 S4 XJ13D38 F157 J3 N1645 V1780 H11 DP11 DK4 DL4 L595
 # DN639 K139 O49 DO80 MN10295 MP4.0937 E147 IN97 DA97 DS95 DF172 DH164 DT96
@@ -188,7 +188,7 @@ def _k2rad(kanji):
 
 _kanjidic = dict()     # format: { 'kanji': {info}, ...}
 
-def _kanjidic_load(dict_fname):
+def _kanjidic1_load(dict_fname):
     ktable = [
         ['F', 'freq'],
         ['G', 'grade'],
@@ -238,9 +238,81 @@ def _kanjidic_load(dict_fname):
                 info['readings'] = line.strip().replace(' ', ', ').replace('T2,', 'T2').replace('T1,', 'T1')
                 _kanjidic[kanji] = info
     except Exception as e:
-        eprint('_kanjidic_load:', dict_fname, str(e))
+        eprint('_kanjidic1_load:', dict_fname, str(e))
         return False
     return True
+
+# load kanjidic2.xml
+# See: http://www.edrdg.org/wiki/index.php/KANJIDIC_Project#Content_.26_Format
+
+import xml.etree.ElementTree as ET
+
+def _kanjidic2_load(dict_fname):
+    try:
+        for char in ET.parse(dict_fname).iterfind('character'):
+            kanji = char.find('literal').text
+            if not kanji in _krad:
+                # REVISIT: for now we drop all the obscure kanji not in kradfile
+                # (which should coincide with the JIS X 0212/0213 Supplementary Kanji sets)
+                continue
+            info = {
+                'strokes': '',
+                'readings': '',
+                'r_korean': '',
+                'r_pinyin': '',
+                'meaning': '',
+                'freq': '',
+                'grade': '',
+            }
+            misc = char.find('misc')
+            strokes = misc.find('stroke_count')
+            info['strokes'] = strokes.text
+            freq = misc.find('freq')
+            info['freq'] = freq.text if freq else ''
+            grade = misc.find('grade')
+            info['grade'] = grade.text if grade else ''
+            rm = char.find('reading_meaning')
+            if rm:
+                rm_group = rm.find('rmgroup')
+                for rd in rm_group.findall('reading'):
+                    r_type = rd.attrib['r_type']
+                    if r_type == 'korean_r':
+                        info['r_korean'] = rd.text
+                    elif r_type == 'pinyin':
+                        info['r_pinyin'] = rd.text
+                    elif r_type[:3] == 'ja_':
+                        info['readings'] += '%s, ' % rd.text
+                for m in rm_group.findall('meaning'):
+                    if m.attrib.get('m_lang', 'en') == 'en':
+                        info['meaning'] += '%s; ' % m.text
+                nanori = ''
+                for n in rm.findall('nanori'):
+                    nanori += '%s, ' % n.text
+                if nanori:
+                    info['readings'] += 'T1 %s' % nanori
+            rad_name = ''
+            for n in misc.findall('rad_name'):
+                rad_name +=  '%s, ' % n.text
+            if rad_name:
+                info['readings'] += 'T2 %s' % rad_name
+            info['readings'] = info['readings'].rstrip(', ')
+            _kanjidic[kanji] = info
+    except Exception as e:
+        eprint('_kanjidic2_load:', dict_fname, str(e))
+        return False
+    return True
+
+def _kanjidic_load(dict_fname):
+    tag_line = ''
+    try:
+        with open(dict_fname) as f:
+            tag_line = f.readline()
+        if '<?xml' in tag_line:
+            return _kanjidic2_load(dict_fname)
+        return _kanjidic1_load(dict_fname)
+    except Exception as e:
+        eprint('_kanjidic_load:', dict_fname, str(e))
+    return False
 
 def _kanjidic_lookup(kanji):
     try:
