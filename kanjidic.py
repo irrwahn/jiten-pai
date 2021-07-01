@@ -359,10 +359,12 @@ class zQTextEdit(QTextEdit):
     def mouseReleaseEvent(self, event):
         if self.kanji and len(self.textCursor().selectedText()) < 1:
             self.kanji_click.emit(self.kanji)
+        super().mouseReleaseEvent(event)
 
     def leaveEvent(self, event):
         self.kanji = ''
         self._restore_cursor()
+        super().leaveEvent(event)
 
 # adapted from Qt flow layout C++ example
 # stripped down and optimized for speed in our special use case
