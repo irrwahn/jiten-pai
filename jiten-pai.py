@@ -144,12 +144,11 @@ def _load_cfg():
     try:
         with open(cfname, 'r') as cfgfile:
             cfg.update(json.load(cfgfile))
-            global _dict_lookup
-            _dict_lookup = _dict_lookup_load if cfg['dict_load'] else _dict_lookup_noload
             cfg['cfgfile'] = cfname
-            return
     except Exception as e:
         eprint('_load_cfg:', cfname, str(e))
+    global _dict_lookup
+    _dict_lookup = _dict_lookup_load if cfg['dict_load'] else _dict_lookup_noload
 
 
 ############################################################
