@@ -118,6 +118,10 @@ _radk = dict()      # format: { 'radical': [stroke_cnt, 'kanji_list'], ... }
 _krad = dict()      # format: { 'kanji': 'radical_list', ... }
 
 def _rad_load(version):
+    for x in range(len(_srad)):
+        _srad[x] = ''
+    _radk.clear()
+    _krad.clear()
     res = True
     for v in range(version):
         radk_name = _KANJIDIC_RADK[v]
@@ -309,6 +313,7 @@ def _kanjidic2_load(dict_fname):
     return True, 2, 2
 
 def _kanjidic_load(dict_fname):
+    _kanjidic.clear()
     tag_line = ''
     try:
         with open(dict_fname) as f:
@@ -687,25 +692,28 @@ class kdMainWindow(QDialog):
         QShortcut('Ctrl+C', self).activated.connect(self.kbd_copy)
         QShortcut('Ctrl+V', self).activated.connect(self.kbd_paste)
         QApplication.processEvents()
-        # load radkfile, kradfile, kanjidic
-        self.dic_ok, version, krad_set = _kanjidic_load(cfg['kanjidic'])
-        if not self.dic_ok:
-            self.show_error('Error loading kanjidic!')
-            return
-        if version > 1:
-            # disable full text search for the XML version
-            self.text_search_check.hide()
-            self.text_search_box.hide()
-            self.text_search_clearbtn.hide()
-        if not _rad_load(krad_set):
-            self.show_error('Error loading radkfile/kradfile!')
-            self.dic_ok = False
+        # load dic files
+        self.init_dic()
         # evaluate command line arguments
         if cl_args is not None:
             if cl_args.kanji_lookup:
                 self.show_info(cl_args.kanji_lookup)
             elif cl_args.clip_kanji:
                 self.show_info(self.clipboard.text())
+
+    def init_dic(self):
+        # load radkfile, kradfile, kanjidic
+        self.dic_ok, version, krad_set = _kanjidic_load(cfg['kanjidic'])
+        if not self.dic_ok:
+            self.show_error('Error loading kanjidic!')
+            return
+        # disable full text search for the XML version
+        self.text_search_check.setVisible(version < 2)
+        self.text_search_box.setVisible(version < 2)
+        self.text_search_clearbtn.setVisible(version < 2)
+        if not _rad_load(krad_set):
+            self.show_error('Error loading radkfile/kradfile!')
+            self.dic_ok = False
 
     def init_cfg(self):
         _load_cfg()

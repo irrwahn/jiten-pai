@@ -1248,6 +1248,8 @@ class jpMainWindow(QMainWindow):
         if res == QDialog.Accepted:
             if self.kanji_dlg:
                 self.kanji_dlg.init_cfg()
+                self.kanji_dlg.init_dic()
+                self.kanji_dlg.update_search()
             idx = self.genopt_dictsel.currentIndex()
             self.genopt_dictsel.clear()
             for d in cfg['dicts']:
