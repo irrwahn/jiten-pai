@@ -20,7 +20,7 @@ the [Electronic Dictionary Research and Development Group](http://www.edrdg.org/
     * EDICT main dictionary; revised format; EUC-JP encoding;
     * download file, then unpack and convert to UTF-8:
       > `zcat edict2.gz | recode EUC-JP..UTF-8 > edict2`
-    * install in Jiten-pai using the Edit->Preferences dialog
+    * install in Jiten-pai using the Edit→Preferences dialog
     * **HINT:** In case the `zcat` or `recode` utilities are not available,
       the included simple transcoding utility can be used instead, e.g.:
 ```
@@ -32,12 +32,12 @@ the [Electronic Dictionary Research and Development Group](http://www.edrdg.org/
 * [EDICT](http://ftp.edrdg.org/pub/Nihongo/edict.gz) *(obsolete)*
     * predecessor to EDICT2; legacy format; EUC-JP encoding
     * download file, unpack and convert to UTF-8 *(see above)*
-    * install via Edit->Preferences
+    * install via Edit→Preferences
 
 * [ENAMDICT](http://ftp.edrdg.org/pub/Nihongo/enamdict.gz) *(optional)*
     * named entity dictionary; EDICT format; EUC-JP encoding
     * download file, unpack and convert to UTF-8 *(see above)*
-    * install via Edit->Preferences
+    * install via Edit→Preferences
 
 More word dictionaries and alternative language versions are available at
 the [EDRDG archive](http://ftp.edrdg.org/pub/Nihongo/#dic_fil). The
@@ -46,26 +46,25 @@ particular indicate whether a file is actually in EDICT(2) format. In most
 cases a conversion from EUC-JP to UTF-8 will be necessary, see above.
 
 In addition to any of the abovementioned word dictionaries, the KanjiDic
-part of Jiten-pai requires installation of the `kanjidic` file, also made
-available by the EDRDG:
+part of Jiten-pai requires installation of one of the `kanjidic` files,
+also made available by the EDRDG:
 
 * [KANJIDIC](http://ftp.edrdg.org/pub/Nihongo/kanjidic.gz) *(recommended)*
     * Kanji dictionary; plain text format; EUC-JP encoding
+    * contains all kanji covered by the JIS X 0208-1998 standard
     * download file, unpack and convert to UTF-8 *(see above)*
-    * install via Edit->Preferences
+    * install via Edit→Preferences
 
 * [KANJIDIC_COMB](http://ftp.edrdg.org/pub/Nihongo/kanjidic_comb_utf8.gz) *(alternative)*
     * Kanji dictionary; plain text format; UTF-8 encoding
-    * contains additional kanji from JIS X 0212/0213 supplementary sets
-    * download file, unpack *(see above)*
-    * install via Edit->Preferences
+    * additionally contains kanji from JIS X 0212/0213 supplementary sets
+    * download file, unpack, install via Edit→Preferences
 
 * [KANJIDIC2](http://ftp.edrdg.org/pub/Nihongo/kanjidic2.xml.gz) *(alternative)*
     * Kanji dictionary; XML format; UTF-8 encoding
-    * contains additional kanji from JIS X 0212/0213 supplementary sets
+    * additionally contains kanji from JIS X 0212/0213 supplementary sets
     * **caveat:** does not support full text search
-    * download file, unpack
-    * install via Edit->Preferences
+    * download file, unpack, install via Edit→Preferences
 
 The [EDRDG licence page](http://www.edrdg.org/edrdg/licence.html) provides
 dictionary copyright information and licensing terms.
