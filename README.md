@@ -54,9 +54,16 @@ available by the EDRDG:
     * download file, unpack and convert to UTF-8 *(see above)*
     * install via Edit->Preferences
 
+* [KANJIDIC_COMB](http://ftp.edrdg.org/pub/Nihongo/kanjidic_comb_utf8.gz) *(alternative)*
+    * Kanji dictionary; plain text format; UTF-8 encoding
+    * contains additional kanji from JIS X 0212/0213 supplementary sets
+    * download file, unpack *(see above)*
+    * install via Edit->Preferences
+
 * [KANJIDIC2](http://ftp.edrdg.org/pub/Nihongo/kanjidic2.xml.gz) *(alternative)*
     * Kanji dictionary; XML format; UTF-8 encoding
     * contains additional kanji from JIS X 0212/0213 supplementary sets
+    * **caveat:** does not support full text search
     * download file, unpack
     * install via Edit->Preferences
 

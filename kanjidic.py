@@ -117,9 +117,10 @@ _srad = [''] * 20   # format: [ stroke_cnt -> 'radical_list' ]
 _radk = dict()      # format: { 'radical': [stroke_cnt, 'kanji_list'], ... }
 _krad = dict()      # format: { 'kanji': 'radical_list', ... }
 
-def _rad_load():
+def _rad_load(version):
     res = True
-    for radk_name in _KANJIDIC_RADK:
+    for v in range(version):
+        radk_name = _KANJIDIC_RADK[v]
         if not os.access(radk_name, os.R_OK):
             radk_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, radk_name), mode=os.R_OK)
         try:
@@ -142,7 +143,8 @@ def _rad_load():
         except Exception as e:
             eprint('_rad_load:', radk_name, str(e))
             res = False
-    for krad_name in _KANJIDIC_KRAD:
+    for v in range(version):
+        krad_name = _KANJIDIC_KRAD[v]
         if not os.access(krad_name, os.R_OK):
             krad_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, krad_name), mode=os.R_OK)
         try:
@@ -199,10 +201,13 @@ def _kanjidic1_load(dict_fname):
     ]
     re_braces = re.compile(r'\{.*\}.*$')
     re_tags = re.compile(r'[BCFGJHNVDPSUIQMEKLOWYXZ]\S+')
+    krad_set = 1
     try:
         with open(dict_fname) as dict_file:
             for line in dict_file:
                 if line[0] in '# ':
+                    if 'KANJD212' in line:
+                        krad_set = 2
                     continue
                 info = {
                     'strokes': '',
@@ -217,9 +222,10 @@ def _kanjidic1_load(dict_fname):
                 # skip kanji and JIS code
                 line = line[6:]
                 # save meaning
-                m = re_braces.search(line).group(0)
-                info['meaning'] = m.replace('{', '').replace('}', ';').strip()
-                line = re_braces.sub('', line)
+                m = re_braces.search(line)
+                if m:
+                    info['meaning'] = m.group(0).replace('{', '').replace('}', ';').strip()
+                    line = re_braces.sub('', line)
                 # get tags
                 tlist = []
                 while True:
@@ -240,8 +246,8 @@ def _kanjidic1_load(dict_fname):
                 _kanjidic[kanji] = info
     except Exception as e:
         eprint('_kanjidic1_load:', dict_fname, str(e))
-        return False
-    return True
+        return False, 0, 0
+    return True, 1, krad_set
 
 # load kanjidic2.xml
 # See: http://www.edrdg.org/wiki/index.php/KANJIDIC_Project#Content_.26_Format
@@ -299,8 +305,8 @@ def _kanjidic2_load(dict_fname):
             _kanjidic[kanji] = info
     except Exception as e:
         eprint('_kanjidic2_load:', dict_fname, str(e))
-        return False
-    return True
+        return False, 0, 0
+    return True, 2, 2
 
 def _kanjidic_load(dict_fname):
     tag_line = ''
@@ -309,13 +315,10 @@ def _kanjidic_load(dict_fname):
             tag_line = f.readline()
         if '<?xml' in tag_line:
             return _kanjidic2_load(dict_fname)
-        # ignore radkfile2/kradfile2 for simple kanjidic
-        _KANJIDIC_RADK.pop()
-        _KANJIDIC_KRAD.pop()
         return _kanjidic1_load(dict_fname)
     except Exception as e:
         eprint('_kanjidic_load:', dict_fname, str(e))
-    return False
+    return False, 0, 0
 
 def _kanjidic_lookup(kanji):
     try:
@@ -685,10 +688,16 @@ class kdMainWindow(QDialog):
         QShortcut('Ctrl+V', self).activated.connect(self.kbd_paste)
         QApplication.processEvents()
         # load radkfile, kradfile, kanjidic
-        if not _kanjidic_load(cfg['kanjidic']):
+        self.dic_ok, version, krad_set = _kanjidic_load(cfg['kanjidic'])
+        if not self.dic_ok:
             self.show_error('Error loading kanjidic!')
-            self.dic_ok = False
-        if not _rad_load():
+            return
+        if version > 1:
+            # disable full text search for the XML version
+            self.text_search_check.hide()
+            self.text_search_box.hide()
+            self.text_search_clearbtn.hide()
+        if not _rad_load(krad_set):
             self.show_error('Error loading radkfile/kradfile!')
             self.dic_ok = False
         # evaluate command line arguments
