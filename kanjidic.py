@@ -752,7 +752,6 @@ class kdMainWindow(QDialog):
         rad_search_layout.addWidget(self.rad_search_clearbtn, 1)
         rad_search_layout.addWidget(self.rad_search_listbtn, 1)
         # full text search
-        text_search_layout = zQHBoxLayout()
         self.text_search_check = QCheckBox('Full Text Search:')
         self.text_search_check.setToolTip('Perform a case insensitive full text search in raw kanjidic file.')
         self.text_search_check.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
