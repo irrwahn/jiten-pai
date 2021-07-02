@@ -56,6 +56,7 @@ available by the EDRDG:
 
 * [KANJIDIC2](http://ftp.edrdg.org/pub/Nihongo/kanjidic2.xml.gz) *(alternative)*
     * Kanji dictionary; XML format; UTF-8 encoding
+    * contains additional kanji from JIS X 0212/0213 supplementary sets
     * download file, unpack
     * install via Edit->Preferences
 

@@ -29,8 +29,8 @@ from PyQt5.QtGui import *
 _KANJIDIC_VERSION = '0.0.10'
 _KANJIDIC_NAME = 'KanjiDic'
 _KANJIDIC_DIR = 'jiten-pai'
-_KANJIDIC_RADK = 'radkfile.utf8'
-_KANJIDIC_KRAD = 'kradfile.utf8'
+_KANJIDIC_RADK = ['radkfile.utf8', 'radkfile2.utf8']
+_KANJIDIC_KRAD = ['kradfile.utf8', 'kradfile2.utf8']
 
 _JITENPAI_CFG = 'jiten-pai.conf'
 
@@ -119,41 +119,42 @@ _krad = dict()      # format: { 'kanji': 'radical_list', ... }
 
 def _rad_load():
     res = True
-    radk_name = _KANJIDIC_RADK
-    if not os.access(radk_name, os.R_OK):
-        radk_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, _KANJIDIC_RADK), mode=os.R_OK)
-    try:
-        with open(radk_name) as radk_file:
-            re_radic = re.compile(r'^\$\s+(.)\s+(\d+)')
-            re_kanji = re.compile(r'^([^#$]\S*)')
-            radical = '?'
-            for line in radk_file:
-                m = re_kanji.search(line)
-                if m:
-                    _radk[radical][1] += m.group(1)
-                    continue
-                m = re_radic.search(line)
-                if m:
-                    radical = m.group(1)
-                    stroke = int(m.group(2))
-                    _radk[radical] = [stroke, '']
-                    _srad[stroke] += radical
-    except Exception as e:
-        eprint('_rad_load:', radk_name, str(e))
-        res = False
-    krad_name = _KANJIDIC_KRAD
-    if not os.access(krad_name, os.R_OK):
-        krad_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, _KANJIDIC_KRAD), mode=os.R_OK)
-    try:
-        with open(krad_name) as krad_file:
-            re_krad = re.compile(r'^([^#\s]) : (.+)$')
-            for line in krad_file:
-                m = re_krad.search(line)
-                if m:
-                    _krad[m.group(1)] = m.group(2).replace(' ', '')
-    except Exception as e:
-        eprint('_rad_load:', krad_name, str(e))
-        res = False
+    for radk_name in _KANJIDIC_RADK:
+        if not os.access(radk_name, os.R_OK):
+            radk_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, radk_name), mode=os.R_OK)
+        try:
+            with open(radk_name) as radk_file:
+                re_radic = re.compile(r'^\$\s+(.)\s+(\d+)')
+                re_kanji = re.compile(r'^([^#$]\S*)')
+                radical = '?'
+                for line in radk_file:
+                    m = re_kanji.search(line)
+                    if m:
+                        _radk[radical][1] += m.group(1)
+                        continue
+                    m = re_radic.search(line)
+                    if m:
+                        radical = m.group(1)
+                        if radical not in _radk:
+                            stroke = int(m.group(2))
+                            _radk[radical] = [stroke, '']
+                            _srad[stroke] += radical
+        except Exception as e:
+            eprint('_rad_load:', radk_name, str(e))
+            res = False
+    for krad_name in _KANJIDIC_KRAD:
+        if not os.access(krad_name, os.R_OK):
+            krad_name = _get_dfile_path(os.path.join(_KANJIDIC_DIR, krad_name), mode=os.R_OK)
+        try:
+            with open(krad_name) as krad_file:
+                re_krad = re.compile(r'^([^#\s]) : (.+)$')
+                for line in krad_file:
+                    m = re_krad.search(line)
+                    if m:
+                        _krad[m.group(1)] = m.group(2).replace(' ', '')
+        except Exception as e:
+            eprint('_rad_load:', krad_name, str(e))
+            res = False
     return res
 
 def _rad2k(rad):
@@ -251,10 +252,6 @@ def _kanjidic2_load(dict_fname):
     try:
         for char in ET.parse(dict_fname).iterfind('character'):
             kanji = char.find('literal').text
-            if not kanji in _krad:
-                # REVISIT: for now we drop all the obscure kanji not in kradfile
-                # (which should coincide with the JIS X 0212/0213 Supplementary Kanji sets)
-                continue
             info = {
                 'strokes': '',
                 'readings': '',
@@ -265,12 +262,15 @@ def _kanjidic2_load(dict_fname):
                 'grade': '',
             }
             misc = char.find('misc')
-            strokes = misc.find('stroke_count')
-            info['strokes'] = strokes.text
-            freq = misc.find('freq')
-            info['freq'] = freq.text if freq else ''
-            grade = misc.find('grade')
-            info['grade'] = grade.text if grade else ''
+            for strokes in misc.findall('stroke_count'):
+                info['strokes'] = strokes.text
+                break
+            for freq in misc.findall('freq'):
+                info['freq'] = freq.text
+                break
+            for grade in misc.findall('grade'):
+                info['grade'] = grade.text
+                break
             rm = char.find('reading_meaning')
             if rm:
                 rm_group = rm.find('rmgroup')
@@ -309,6 +309,9 @@ def _kanjidic_load(dict_fname):
             tag_line = f.readline()
         if '<?xml' in tag_line:
             return _kanjidic2_load(dict_fname)
+        # ignore radkfile2/kradfile2 for simple kanjidic
+        _KANJIDIC_RADK.pop()
+        _KANJIDIC_KRAD.pop()
         return _kanjidic1_load(dict_fname)
     except Exception as e:
         eprint('_kanjidic_load:', dict_fname, str(e))
@@ -682,11 +685,11 @@ class kdMainWindow(QDialog):
         QShortcut('Ctrl+V', self).activated.connect(self.kbd_paste)
         QApplication.processEvents()
         # load radkfile, kradfile, kanjidic
-        if not _rad_load():
-            self.show_error('Error loading radkfile/kradfile!')
-            self.dic_ok = False
         if not _kanjidic_load(cfg['kanjidic']):
             self.show_error('Error loading kanjidic!')
+            self.dic_ok = False
+        if not _rad_load():
+            self.show_error('Error loading radkfile/kradfile!')
             self.dic_ok = False
         # evaluate command line arguments
         if cl_args is not None:
