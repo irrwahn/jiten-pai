@@ -163,39 +163,11 @@ except Exception as e:
 ############################################################
 # verb de-inflection
 
-# REs for word classes a specific inflection rule may generally be
-# applicable to, as tagged in the gloss part of dictionary entries.
-_vconj_wclass = { # TODO: adjust these REs to best fit word classes to inflection rule.
-     0: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain, negative, nonpast
-     1: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, non-past
-     2: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # conditional
-     3: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # volitional
-     4: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # te-form
-     5: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain, past
-     6: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain, negative, past
-     7: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # passive
-     8: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # causative
-     9: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # potential or imperative
-    10: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # imperative
-    11: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, past
-    12: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, negative, non-past
-    13: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, negative, past
-    14: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, volitional
-    15: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj. -> adverb
-    16: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj., past
-    17: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite
-    18: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, volitional
-    19: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # passive or potential
-    20: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # passive (or potential if Grp 2)
-    21: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj., negative
-    22: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj., negative, past
-    23: re.compile(r'\((adj|adv|aux|n-adv)'),                  # adj., past
-    24: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # plain verb
-    25: re.compile(r'\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))'),  # polite, te-form
-}
+Vtype = namedtuple('Vtype', 'wclass label')
+Vconj = namedtuple('Vconj', 'regex conj infi rule')
 
-_vconj_type = dict()
-_vconj_deinf = []
+_vconj_type = dict()  # format: { rule_no: (wclass, label), ... }
+_vconj_deinf = []     # format: [ (regex, conj, infinitve, rule_no), ... ]
 _vconj_loaded = False
 
 def _get_dfile_path(fname, mode=os.R_OK):
@@ -215,8 +187,6 @@ def _get_dfile_path(fname, mode=os.R_OK):
     return fname
 
 # load and parse VCONJ rule file
-Vconj = namedtuple('Vconj', 'regex conj infi rule')
-
 def _vconj_load():
     global _vconj_loaded
     vcname = _JITENPAI_VCONJ
@@ -224,24 +194,25 @@ def _vconj_load():
         vcname = _get_dfile_path(os.path.join(_JITENPAI_DIR, _JITENPAI_VCONJ), mode=os.R_OK)
     try:
         with open(vcname) as vcfile:
-            re_type = re.compile(r'^(\d+)\s+(.+)$')
+            re_type = re.compile(r'^(\d+)\s+"(\S+)"\s+(.+)$')
             re_deinf = re.compile(r'^\s*([^#\s]+)\s+(\S+)\s+(\d+)\s*$')
             for line in vcfile:
                 match = re_type.match(line)
                 if match:
-                    _vconj_type[match.group(1)] = match.group(2)
+                    wclass = re.compile(match.group(2))
+                    _vconj_type[int(match.group(1))] = Vtype(wclass, match.group(3))
                     continue
                 match = re_deinf.match(line)
                 if match:
                     regex = re.compile('%s$' % match.group(1))
-                    _vconj_deinf.append(Vconj(regex, match.group(1), match.group(2), match.group(3)))
+                    _vconj_deinf.append(Vconj(regex, match.group(1), match.group(2), int(match.group(3))))
                     continue
         _vconj_loaded = len(_vconj_deinf) > 0
     except Exception as e:
         eprint('_vconj_load:', vcname, str(e))
 
 # collect inflection rules potentially applicable to a verb(-candidate)
-Vinf = namedtuple('Vinf', 'infi blurb rule')
+Vinf = namedtuple('Vinf', 'infi blurb wclass')
 
 def _vconj_deinflect(verb):
     inf = []
@@ -249,8 +220,9 @@ def _vconj_deinflect(verb):
     for deinf in _vconj_deinf:
         verb_inf = deinf.regex.sub(deinf.infi, verb)
         if verb_inf != verb:
-            blurb = '%s %s → %s' % (_vconj_type[deinf.rule], deinf.conj, deinf.infi)
-            inf.append(Vinf(verb_inf, blurb, int(deinf.rule)))
+            blurb = '%s %s → %s' % (_vconj_type[deinf.rule].label, deinf.conj, deinf.infi)
+            wclass = _vconj_type[deinf.rule].wclass
+            inf.append(Vinf(verb_inf, blurb, wclass))
     return inf
 
 
@@ -1355,7 +1327,7 @@ class jpMainWindow(QMainWindow):
             # keep only results belonging to a suitable word class and
             # attach the inflection info; reject everything else
             for r in res:
-                if _vconj_wclass[inf.rule].search(r.gloss):
+                if inf.wclass.search(r.gloss):
                     result.append(EntryEx(r.headword, r.reading, r.gloss, inf))
                     limit -= 1
             if limit <= 0 or not ok:

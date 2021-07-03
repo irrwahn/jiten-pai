@@ -1,44 +1,43 @@
 #
 # V C O N J - control file for verb and adjective deinflection
 #
-# the following section sets up the labels which are used for the
-# various inflections. These are displayed by the program.
-# The initial labels can be edited by the user.
+# Adapted from xjdic, Copyright (c) 2003 J.W. Breen
 #
-#  First there are the labels for the types of conjugations
+# First there are the labels for the types of conjugations, along with
+# regular expressions to filter potential dictionary matches based on
+# the tags in the gloss to only include words of suitable classes,
+# depending on the nature of the rule.
 #
-0	plain, negative, nonpast
-1	polite, non-past
-2	conditional
-3	volitional
-4	te-form
-5	plain, past
-6	plain, negative, past
-7	passive
-8	causative
-9	potential or imperative
-10	imperative
-11	polite, past
-12	polite, negative, non-past
-13	polite, negative, past
-14	polite, volitional
-15	adj. -> adverb
-16	adj., past
-17	polite
-18	polite, volitional
-19	passive or potential
-20	passive (or potential if Grp 2)
-21	adj., negative
-22	adj., negative, past
-23	adj., past
-24	plain verb
-25	polite, te-form
+# TODO: adjust these REs to best fit
 #
-#  and these are the conjugations/inflections, and their dictionary forms
-#	(please note that these are scanned from the top, so the order is
-#	critical if the correct guess is to be made.)
+0	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain, negative, nonpast
+1	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, non-past
+2	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    conditional
+3	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    volitional
+4	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    te-form
+5	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain, past
+6	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain, negative, past
+7	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    passive
+8	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    causative
+9	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    potential or imperative
+10	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    imperative
+11	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, past
+12	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, negative, non-past
+13	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, negative, past
+14	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, volitional
+15	"\((adj|adv|aux|n-adv)"                    adj. -> adverb
+16	"\((adj|adv|aux|n-adv)"                    adj., past
+17	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite
+18	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, volitional
+19	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    passive or potential
+20	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    passive (or potential if Grp 2)
+21	"\((adj|adv|aux|n-adv)"                    adj., negative
+22	"\((adj|adv|aux|n-adv)"                    adj., negative, past
+23	"\((adj|adv|aux|n-adv)"                    adj., past
+24	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain verb
+25	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, te-form
 #
-$   this line flags the start of them
+# And these are the conjugations/inflections, and their dictionary forms.
 #
 た	る	5
 て	る	4
@@ -189,7 +188,7 @@ $   this line flags the start of them
 ましょう	る	18
 れば	る	2
 よう	る	3
-#て	る	4    # 2021-06-19 disabled here, appears in line 44
+#て	る	4    # 2021-06-19 disabled here, already present above
 た	る	5
 られ	る	20
 させ	る	8

@@ -129,8 +129,8 @@ Jiten-pai incorporates parts taken from other projects, namely:
 * Kana conversion code adapted from [jaconv](https://github.com/ikegami-yukino/jaconv);
   Copyright (c) 2014 Yukino Ikegami; MIT License
 
-* VCONJ verb de-inflection rule file adapted from [Gjiten](http://gjiten.sourceforge.net/);
-  Copyright (c) 1999-2005 Botond Botyanszki; GNU General Public License v2.0
+* VCONJ verb de-inflection rule file adapted from XJDIC;
+  Copyright (c) 1998-2003 J.W. Breen; GNU General Public License v2.0
 
 * RADKFILE and KRADFILE kanji radical cross-reference adapted from
   [The KRADFILE/RADKFILE Project](http://www.edrdg.org/krad/kradinf.html);
