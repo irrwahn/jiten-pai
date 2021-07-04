@@ -24,7 +24,7 @@
 11	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, past
 12	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, negative, non-past
 13	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, negative, past
-14	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, volitional
+#14	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, volitional (unused)
 15	"\((adj|adv|aux|n-adv)"                    adj. -> adverb
 16	"\((adj|adv|aux|n-adv)"                    adj., past
 17	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite
@@ -34,7 +34,7 @@
 21	"\((adj|adv|aux|n-adv)"                    adj., negative
 22	"\((adj|adv|aux|n-adv)"                    adj., negative, past
 23	"\((adj|adv|aux|n-adv)"                    adj., past
-24	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain verb
+#24	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain verb (unused)
 25	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, te-form
 #
 # And these are the conjugations/inflections, and their dictionary forms.
@@ -186,11 +186,11 @@
 ませんでした	る	13
 ません	る	12
 ましょう	る	18
-れば	る	2
+#れば	る	2    # 2021-07-04 disabled here, already present above
 よう	る	3
 #て	る	4    # 2021-06-19 disabled here, already present above
 #た	る	5    # 2021-07-04 disabled here, already present above
-られ	る	20
+#られ	る	20   # 2021-07-04 disabled here, already present above
 させ	る	8
 ろ	る	10
 らま	る	17
