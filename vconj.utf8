@@ -2,6 +2,8 @@
 # V C O N J - control file for verb and adjective deinflection
 #
 # Adapted from xjdic, Copyright (c) 2003 J.W. Breen
+# Modified for Gjiten, 1999-2005 by Botond Botyanszki
+# Modified for Jiten-Pai, 2021
 #
 # First there are the labels for the types of conjugations, along with
 # regular expressions to filter potential dictionary matches based on
