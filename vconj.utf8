@@ -12,32 +12,32 @@
 #
 # TODO: adjust these REs to best fit
 #
-0	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain, negative, nonpast
-1	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, non-past
-2	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    conditional
-3	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    volitional
-4	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    te-form
-5	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain, past
-6	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain, negative, past
-7	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    passive
-8	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    causative
-9	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    potential or imperative
-10	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    imperative
-11	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, past
-12	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, negative, non-past
-13	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, negative, past
-#14	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, volitional (unused)
-15	"\((adj|adv|aux|n-adv)"                    adj. -> adverb
-16	"\((adj|adv|aux|n-adv)"                    adj., past
-17	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite
-18	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, volitional
-19	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    passive or potential
-20	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    passive (or potential if Grp 2)
-21	"\((adj|adv|aux|n-adv)"                    adj., negative
-22	"\((adj|adv|aux|n-adv)"                    adj., negative, past
-23	"\((adj|adv|aux|n-adv)"                    adj., past
-#24	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain verb (unused)
-25	"\((adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, te-form
+0	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain, negative, nonpast
+1	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, non-past
+2	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    conditional
+3	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    volitional
+4	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    te-form
+5	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain, past
+6	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain, negative, past
+7	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    passive
+8	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    causative
+9	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    potential or imperative
+10	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    imperative
+11	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, past
+12	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, negative, non-past
+13	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, negative, past
+#14	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, volitional (unused)
+15	"(adj|adv|aux|n-adv)"                    adj. -> adverb
+16	"(adj|adv|aux|n-adv)"                    adj., past
+17	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite
+18	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, volitional
+19	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    passive or potential
+20	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    passive (or potential if Grp 2)
+21	"(adj|adv|aux|n-adv)"                    adj., negative
+22	"(adj|adv|aux|n-adv)"                    adj., negative, past
+23	"(adj|adv|aux|n-adv)"                    adj., past
+#24	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    plain verb (unused)
+25	"(adj|adv|aux|n-adv|v(?!ulg|idg|ie))"    polite, te-form
 #
 # And these are the conjugations/inflections, and their dictionary forms.
 #

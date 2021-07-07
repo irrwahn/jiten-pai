@@ -199,7 +199,7 @@ def _vconj_load():
             for line in vcfile:
                 match = re_type.match(line)
                 if match:
-                    wclass = re.compile(match.group(2))
+                    wclass = re.compile(r'(\((.+?,)*?)' + match.group(2))
                     _vconj_type[int(match.group(1))] = Vtype(wclass, match.group(3))
                     continue
                 match = re_deinf.match(line)
