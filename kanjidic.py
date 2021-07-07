@@ -20,13 +20,14 @@ import sys
 import os
 import re
 import json
+import base64
 from argparse import ArgumentParser, RawTextHelpFormatter
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
 
-_KANJIDIC_VERSION = '0.0.10'
+_KANJIDIC_VERSION = '0.0.11'
 _KANJIDIC_NAME = 'KanjiDic'
 _KANJIDIC_DIR = 'jiten-pai'
 _KANJIDIC_RADK = ['radkfile.utf8', 'radkfile2.utf8']
@@ -362,6 +363,53 @@ def _s2kanji(min_strokes, max_strokes=-1):
         if min_strokes <= s <= max_strokes:
             res += k
     return res
+
+
+############################################################
+# Icons
+
+class sQPixmap(QPixmap):
+    def __init__(self, *args, imgdata=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if imgdata is not None:
+            super().loadFromData(base64.b64decode(imgdata))
+
+class jpIcon:
+    """ Icon resource storage with only class attributes, not instantiated."""
+    initialized = False
+    jiten_pai_png = """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
+"""
+    def __new__(cls):
+        if cls.initialized:
+            return
+        cls.initialized = True
+        jpIcon.jiten_pai_pxm = sQPixmap(imgdata=jpIcon.jiten_pai_png)
+        jpIcon.jiten_pai = QIcon(jpIcon.jiten_pai_pxm)
 
 
 ############################################################
@@ -719,9 +767,9 @@ class kdMainWindow(QDialog):
         _load_cfg()
 
     def init_ui(self, title=''):
-        #jpIcon()
+        jpIcon()
         self.setWindowTitle(title)
-        #self.setWindowIcon(jpIcon.jitenpai)
+        self.setWindowIcon(jpIcon.jiten_pai)
         self.resize(730, 600)
         self.clipboard = QApplication.clipboard()
         # search options
