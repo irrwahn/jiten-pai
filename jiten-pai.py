@@ -19,7 +19,20 @@ _JITENPAI_DIR = 'jiten-pai'
 _JITENPAI_CFG = 'jiten-pai.conf'
 _JITENPAI_VCONJ = 'vconj.utf8'
 
-_JITENPAI_HELP = 'todo'
+_JITENPAI_INFO = """<p>Jiten-pai incorporates parts taken from other projects:
+</p><p>
+Kana conversion code adapted from <a href="https://github.com/ikegami-yukino/jaconv">jaconv</a>.<br>
+Copyright (c) 2014 Yukino Ikegami; MIT License
+</p><p>
+VCONJ verb de-inflection rule file adapted from XJDIC.<br>
+Copyright (c) 1998-2003 J.W. Breen; GNU General Public License v2.0<br>
+Modifications for Gjiten 1999-2005 by Botond Botyanszki
+</p><p>
+RADKFILE and KRADFILE kanji radical cross-reference adapted from
+<a href="http://www.edrdg.org/krad/kradinf.html">The KRADFILE/RADKFILE Project</a>.<br>
+Copyright (c) James William BREEN and The Electronic Dictionary Research
+and Development Group; Creative Commons Attribution-ShareAlike Licence (V3.0)
+</p>"""
 
 import sys
 
@@ -622,36 +635,40 @@ class aboutDialog(QDialog):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setWindowTitle('Help & About')
-        self.setFixedSize(600, 600)
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setWindowTitle('About')
+        self.resize(600, 500)
         self.icon_label = QLabel()
-        #self.icon_label.setPixmap(jpIcon.jitenpai_pxm)
+        self.icon_label.setPixmap(jpIcon.jiten_pai_pxm)
         self.tag_label = QLabel('%s %s\n'
                                 'Copyright (c) 2021, Urban Wallasch\n'
                                 'BSD 3-Clause License\n'
                                 'Contributors: volpol'
                                 % (_JITENPAI_NAME, _JITENPAI_VERSION))
         self.tag_label.setAlignment(Qt.AlignCenter)
+        self.tag_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.hdr_layout = QHBoxLayout()
         self.hdr_layout.addWidget(self.icon_label, 1)
         self.hdr_layout.addWidget(self.tag_label, 100)
-        self.help_pane = QTextEdit()
-        self.help_pane.setReadOnly(True)
-        self.help_pane.setStyleSheet('QTextEdit {border: none;}')
-        self.help_pane.setHtml(_JITENPAI_HELP)
+        self.info_pane = QTextBrowser()
+        self.info_pane.setReadOnly(True)
+        self.info_pane.setOpenExternalLinks(True)
+        self.info_pane.viewport().setAutoFillBackground(False)
+        self.info_pane.setStyleSheet('QTextEdit {border: none;}')
+        self.info_pane.setHtml(_JITENPAI_INFO)
         self.qt_button = QPushButton('About Qt')
         self.qt_button.clicked.connect(lambda: QMessageBox.aboutQt(self))
         self.ok_button = QPushButton('Ok')
         self.ok_button.setIcon(jpIcon.ok)
         self.ok_button.clicked.connect(self.accept)
+        self.ok_button.setDefault(True)
         self.btn_layout = QHBoxLayout()
         self.btn_layout.addWidget(self.qt_button)
         self.btn_layout.addStretch()
         self.btn_layout.addWidget(self.ok_button)
         self.dlg_layout = QVBoxLayout(self)
         self.dlg_layout.addLayout(self.hdr_layout)
-        self.dlg_layout.addWidget(self.help_pane)
+        self.dlg_layout.addSpacing(20)
+        self.dlg_layout.addWidget(self.info_pane)
         self.dlg_layout.addLayout(self.btn_layout)
 
 

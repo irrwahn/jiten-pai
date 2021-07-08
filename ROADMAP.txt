@@ -14,7 +14,7 @@ Phase II
 [x] preferences, config file
 [x] history
 [x] Romaji input
-[ ] program name, icon, "About & Help" dialog
+[x] program name, icon, "About" dialog
 [ ] README
 [x] verb de-inflection
 
