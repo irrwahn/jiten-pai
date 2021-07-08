@@ -84,7 +84,7 @@ dictionary copyright information and licensing terms.
   chances are you can safely ignore it.)
 
 * During startup Jiten-pai will look for the `vconj.utf8` verb conjugation
-  file as well as the `kradfile.utf8` and `radkfile.utf8` kanji radical
+  file as well as the `kradfile[2].utf8` and `radkfile[2].utf8` kanji radical
   cross-reference files in the following directories, in the given order:
     * `$HOME/.local/share/jiten-pai/`
     * `/usr/local/share/jiten-pai/`
@@ -115,11 +115,6 @@ for workflow integration.  These should be fairly self explaining:
 
     Only one of these options should be used at a time.
 ```
-
-
-## Known issues
-
-* *TBD*
 
 
 ## License

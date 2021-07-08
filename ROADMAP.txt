@@ -15,7 +15,7 @@ Phase II
 [x] history
 [x] Romaji input
 [x] program name, icon, "About" dialog
-[ ] README
+[x] README
 [x] verb de-inflection
 
 
