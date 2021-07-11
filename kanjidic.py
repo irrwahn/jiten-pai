@@ -27,7 +27,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 
 
-_KANJIDIC_VERSION = '0.0.11'
+_KANJIDIC_VERSION = '0.1.0'
 _KANJIDIC_NAME = 'KanjiDic'
 _KANJIDIC_DIR = 'jiten-pai'
 _KANJIDIC_RADK = ['radkfile.utf8', 'radkfile2.utf8']
